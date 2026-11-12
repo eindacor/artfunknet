@@ -17,8 +17,6 @@ import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import { rewardUndetectedForgeryExit } from "@/server/forgery-gameplay";
 import type { GameItem } from "@/server/gameplay";
-import { getGameplaySettings } from "@/server/game-settings";
-import { canQuickSellItem } from "@/server/offer-reveal";
 import { transferHallOfFameItems } from "@/server/hall-of-fame";
 import { removeExpiredTransientItems } from "@/server/item-expiration";
 import {
@@ -50,11 +48,8 @@ export async function POST(request: Request) {
 
   const { candidates, hydratedCandidates, items: filteredItems, questTargetIds } =
     await getFilteredBulkLootCandidates(database, auth.session.playerId, protections);
-  const settings = await getGameplaySettings(database);
-  const revealCandidatesById = new Map(hydratedCandidates.map((item) => [item._id, item]));
   const items = filteredItems.filter((item) =>
-    getItemDisposalPermission(item, "sell").allowed &&
-    canQuickSellItem(revealCandidatesById.get(item._id) ?? item, settings.active.offerRevealThresholds),
+    getItemDisposalPermission(item, "sell").allowed,
   );
 
   if (candidates.length === 0) {

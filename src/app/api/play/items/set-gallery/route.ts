@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
 import { planGallerySelection } from "@/server/gallery-selection";
 import type { GameItem } from "@/server/gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
+import { hydrateGameItems } from "@/server/item-artwork";
+import { isRevealedForBulkAction } from "@/server/offer-reveal";
 import { getDemintUpdate } from "@/server/item-mint";
 import { getDatabase } from "@/server/mongodb";
 import { ensureTutorialDonor } from "@/server/npc-gameplay";
@@ -88,6 +91,18 @@ export async function POST(request: Request) {
   if (!plan.ok) {
     return NextResponse.json({ error: plan.reason }, { status: 409 });
   }
+  const [affectedItems, settings] = await Promise.all([
+    hydrateGameItems(database, [
+      ...selectedItems, ...ownedItems.filter((item) => plan.takeDownIds.includes(item._id)),
+    ]),
+    getGameplaySettings(database),
+  ]);
+  if (affectedItems.some((item) => !isRevealedForBulkAction(item, settings.active.offerRevealThresholds))) {
+    return NextResponse.json(
+      { error: "Reveal every affected item before setting the gallery." },
+      { status: 409 },
+    );
+  }
 
   const selectedById = new Map(selectedItems.map((item) => [item._id, item]));
   const displayedById = new Map(
@@ -128,6 +143,7 @@ export async function POST(request: Request) {
           _id: { $in: plan.takeDownIds },
           owner: player._id,
           status: "displayed",
+          revealed: { $ne: false },
         },
         {
           $set: { status: "claimed" },
@@ -147,6 +163,7 @@ export async function POST(request: Request) {
           owner: player._id,
           status: "claimed",
           repairing: { $ne: true },
+          revealed: { $ne: false },
         },
         {
           $set: {

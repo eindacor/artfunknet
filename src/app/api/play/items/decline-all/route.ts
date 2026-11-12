@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     _id: { $in: deletableIds },
     owner: auth.session.playerId,
     status: "for_sale",
+    revealed: { $ne: false },
   });
   const remainingIds =
     result.deletedCount === deletableIds.length

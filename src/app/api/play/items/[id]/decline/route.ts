@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getBulkDisposalPermission } from "@/server/bulk-sale";
 import { deleteCommunityReactions } from "@/server/community-reaction-cleanup";
 import type { GameItem } from "@/server/gameplay";
 import { transferIfHallOfFameItem } from "@/server/hall-of-fame";
@@ -7,7 +8,7 @@ import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -25,6 +26,10 @@ export async function POST(
       { error: "This item can no longer be declined." },
       { status: 409 },
     );
+  }
+  const bulkPermission = await getBulkDisposalPermission(database, auth.session.playerId, item, request);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
   }
   const preserved = await transferIfHallOfFameItem(database, item);
   if (!preserved) {

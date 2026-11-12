@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
+import { getBulkDisposalPermission } from "@/server/bulk-sale";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 
 import {
@@ -48,7 +49,7 @@ type ArchivePlayer = {
 const ARCHIVE_LOCK_SECONDS = 30;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -124,6 +125,10 @@ export async function POST(
         { error: archivePermission.reason },
         { status: 409 },
       );
+    }
+    const bulkPermission = await getBulkDisposalPermission(database, lockedPlayer._id, item, request);
+    if (!bulkPermission.allowed) {
+      return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
     }
     if (item.authenticity.forgery) {
       await transferForgeryLiability(database, item, lockedPlayer._id);

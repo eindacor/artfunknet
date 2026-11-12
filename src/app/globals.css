@@ -3919,6 +3919,10 @@ a.welcome-button {
   border-color: #5abbfc;
 }
 
+.thumbnail-status-watermarks .fa.thumbnail-quest-target-submitted {
+  opacity: 0.4;
+}
+
 .thumbnail-status-watermarks .fa {
   display: grid;
   width: 22px;
@@ -7772,6 +7776,10 @@ a.welcome-button {
   padding: 10px 10px 5px;
 }
 
+.random-drop .loot-section-actions .archive-all-loot {
+  white-space: nowrap;
+}
+
 .random-drop .loot-section-actions > button {
   position: relative;
   min-height: 34px;
@@ -7995,6 +8003,30 @@ a.welcome-button {
   padding: 8px;
   background: #fffdf8;
   box-shadow: 0 6px 16px rgb(52 45 37 / 18%);
+}
+
+.bulk-art-style-selection-actions {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #d6cfc4;
+  padding-bottom: 6px;
+}
+
+.bulk-art-style-selection-actions button {
+  flex: 1;
+  border: 1px solid #c9c1b6;
+  border-radius: 3px;
+  padding: 4px 6px;
+  background: #fffdf8;
+  color: #5f5a52;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.bulk-art-style-selection-actions button:hover,
+.bulk-art-style-selection-actions button:focus-visible {
+  border-color: var(--accent);
+  color: #8d285e;
 }
 
 @media (max-width: 900px) {

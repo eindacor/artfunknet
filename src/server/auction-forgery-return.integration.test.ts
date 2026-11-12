@@ -9,7 +9,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 import { returnAuctionForgery } from "./auction-forgery-return.ts";
 import { createAuction, createCollectorResaleAuction } from "./auction-gameplay.ts";
-import { processBulkForgeries } from "./bulk-sale.ts";
+import { getBulkDisposalPermission, processBulkForgeries } from "./bulk-sale.ts";
 import { settleGalleryEarnings } from "./collection-gameplay.ts";
 import {
   DEFAULT_ACTUAL_GAMEPLAY_CONFIG as config,
@@ -59,6 +59,7 @@ async function itemRoute(action: string, db: Db) {
     "@/server/mongodb": { getDatabase: async () => db },
     "@/server/forgery-gameplay": { ...forgeryRules, rollForgeryDetected: () => true },
     "@/server/item-permissions": itemPermissions,
+    "@/server/bulk-sale": { getBulkDisposalPermission },
     "@/server/economy-metrics": { recordEconomyMetricsSafely: async () => {} },
     "@/server/game-settings": { getGameplaySettings },
     "@/server/item-artwork": { hydrateGameItems: async (_db: Db, items: GameItem[]) => items.map((item) => ({

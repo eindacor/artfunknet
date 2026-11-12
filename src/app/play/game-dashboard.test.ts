@@ -12,7 +12,11 @@ import { getDailyCrateItemCount } from "../../server/daily-crate.ts";
 import { getVisitorSocialBatteryCost } from "../../server/social-battery.ts";
 import type { HydratedGameItem } from "../../server/item-artwork.ts";
 import { getArtworkImageUrl } from "../../server/artwork-image-url.ts";
-import { getBulkAcquisitionRequirements } from "../../server/bulk-acquisition.ts";
+import { getBulkAcquisitionRequirements, selectBulkPurchaseItems } from "../../server/bulk-acquisition.ts";
+import { getArchiveArtStyle, getArchiveCategories } from "../../server/archive-gameplay.ts";
+import { DROPPABLE_CARD_RENDERER_IDS } from "../../components/item-cards/catalog.ts";
+import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../../server/player-view-settings.ts";
+import { getBulkItemProtection, isBulkLootCandidate, type BulkSaleProtections } from "../../server/bulk-sale.ts";
 import { getRemainingOfferSelection } from "../../server/collection-inventory.ts";
 import { planGallerySelection } from "../../server/gallery-selection.ts";
 import { TutorialElement } from "../../shared/tutorial.ts";
@@ -28,6 +32,7 @@ import {
   canQuickSellItem,
   getOfferRevealTier,
   isOfferRevealed,
+  isRevealedForBulkAction,
 } from "../../server/offer-reveal.ts";
 
 const sharedSource = ts.createSourceFile("shared.tsx",
@@ -60,6 +65,12 @@ function runInNewContext(code: string, context: Record<string, unknown>) {
   context.showTutorial ??= () => false;
   context.inventory ??= [];
   context.selectedCollectionItemIdsSet ??= new Set<string>();
+  context.viewSettingsSaveQueue ??= { current: Promise.resolve() };
+  context.DEFAULT_OFFER_REVEAL_THRESHOLDS = DEFAULT_OFFER_REVEAL_THRESHOLDS;
+  context.isRevealedForBulkAction = isRevealedForBulkAction;
+  context.getBulkItemProtection = getBulkItemProtection;
+  context.offerRevealThresholds ??= DEFAULT_OFFER_REVEAL_THRESHOLDS;
+  context.revealedOfferIds ??= new Set();
   return runInVm(code, context);
 }
 
@@ -94,11 +105,16 @@ const handlerNames = new Set([
   "requestItemRemoval",
   "requestPurchaseDonation",
   "historianSubmissionDisabledReason",
+  "renderLootThumbnail",
   "renderFeaturedWork",
   "visitOwnGallery",
   "toggleCollectionItemSelection",
   "updateCollectionItemSelection",
   "performLootBulkAction",
+  "performCollectionBulkAction",
+  "purchaseAndDonateAllLoot",
+  "archiveAllLoot",
+  "changeBulkKeptArtStyles",
   "meetNpc",
 ]);
 const handlers = ts.transpileModule(
@@ -343,7 +359,7 @@ test("bulk offer removal preserves selection until refresh, including failed and
     const refresh = test.mock.fn();
     const entries = ["first", "middle"].map(key => ({ key, item: item(key), auction: null }));
     runInNewContext(`${handlers}\nperformLootBulkAction("remove")`, {
-      selectedLootEntries: entries, lootBulkState: { historianQuestByItemId: [] },
+      selectedLootEntries: entries, lootBulkState: { historianQuestByItemId: [], availability: { remove: { allowed: true } } },
       startTransition: (action: () => Promise<void>) => { transition = action(); },
       fetch: async () => {
         requests++;
@@ -360,6 +376,456 @@ test("bulk offer removal preserves selection until refresh, including failed and
     assert.deepEqual(getRemainingOfferSelection(["first", "middle"], ["first", "middle", "last"], remaining),
       failAt === null ? ["last"] : failAt === 1 ? ["first", "middle"] : ["middle"]);
   }
+});
+
+test("art-style dropdown Select all and Select none update the checkboxes and saved bulk preferences", async () => {
+  let dropdown: ts.JsxElement | undefined;
+  function find(node: ts.Node) {
+    if (ts.isJsxElement(node) && node.openingElement.tagName.getText(source) === "details" &&
+      node.openingElement.attributes.getText(source).includes('className="bulk-art-style-options"')) dropdown = node;
+    ts.forEachChild(node, find);
+  }
+  find(dashboard);
+  assert.ok(dropdown);
+  const dropdownCode = ts.transpileModule(`const render = () => (${dropdown.getText(source)});`, {
+    compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const styles = [{ id: "zine", label: "Zine" }, { id: "arcade", label: "Arcade" }] as const;
+  let protections: BulkSaleProtections = { ...DEFAULT_PLAYER_VIEW_SETTINGS.bulkSaleProtections, keptArtStyleIds: ["zine"] };
+  const saved: BulkSaleProtections[] = [];
+  const viewSettingsSaveQueue = { current: Promise.resolve() };
+  function render() {
+    return runInNewContext(`${handlers}\n${dropdownCode}\nrender()`, {
+      React, DROPPABLE_CARD_RENDERER_IDS, bulkArtStyleOptions: styles,
+      keptActiveArtStyleCount: styles.filter(style => protections.keptArtStyleIds.includes(style.id)).length,
+      bulkSaleProtections: protections,
+      viewSettingsSaveQueue,
+      setBulkSaleProtections: (next: BulkSaleProtections) => { protections = next; },
+      setError: (message: string) => assert.fail(message),
+      fetch: async (url: string, options: RequestInit) => {
+        assert.equal(url, "/api/play/view-settings");
+        saved.push(JSON.parse(options.body as string).bulkSaleProtections);
+        return Response.json({});
+      },
+    }) as React.ReactElement<{ children: React.ReactNode }>;
+  }
+  function elements(node: React.ReactNode): React.ReactElement<Record<string, unknown>>[] {
+    return React.Children.toArray(node).flatMap(child =>
+      React.isValidElement<{ children?: React.ReactNode }>(child) ? [child, ...elements(child.props.children)] : [],
+    );
+  }
+  for (const [label, expected] of [["Select none", []], ["Select all", ["zine", "arcade"]]] as const) {
+    const button = elements(render()).find(child => child.type === "button" && child.props.children === label)!;
+    (button.props.onClick as () => void)();
+    await viewSettingsSaveQueue.current;
+    assert.deepEqual(Array.from(protections.keptArtStyleIds), [...expected]);
+    assert.equal(protections.keepUnfoundQuestTargets, true, "style changes preserve other protection flags");
+    const checkboxes = elements(render()).filter(child => child.type === "input");
+    assert.ok(checkboxes.every(child => child.props.checked === (label === "Select all")));
+    assert.deepEqual(saved.at(-1), JSON.parse(JSON.stringify(protections)));
+  }
+  const checkbox = elements(render()).find(child => child.type === "input")!;
+  (checkbox.props.onChange as (event: unknown) => void)({ target: { checked: false } });
+  await viewSettingsSaveQueue.current;
+  assert.deepEqual(Array.from(protections.keptArtStyleIds), ["arcade"]);
+  assert.deepEqual(saved.at(-1)?.keptArtStyleIds, ["arcade"]);
+});
+
+test("bulk selections protect outstanding quest targets even when owned, but not fulfilled targets or disabled preferences", () => {
+  const target = {
+    ...item("target", "common"), revealed: true, original: false, permanent: false, tags: [],
+    values: { dealer: 10 }, authenticity: { forgery: false, identified: false },
+  };
+  for (const enabled of [false, true]) {
+    for (const fulfilled of [false, true]) {
+      const quests = [{
+        _id: "quest", target: [target.artwork_id], targets: [{ artwork: { _id: target.artwork_id }, owned: true, fulfilled }],
+        fulfilled_targets: fulfilled ? [{ artwork_id: target.artwork_id }] : [],
+      }];
+      const common = { getUnfulfilledHistorianTargetIds, canQuickSellItem, planGallerySelection, getArchivePermission, getBulkAcquisitionRequirements };
+      const collection = runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
+        ...common,
+        options: {
+          collectionItems: [target], selectedItems: [{ ...target, status: "claimed" }], displayCap: 5,
+          quests, repairingCap: 5, repairingCount: 0,
+          bulkSaleProtections: { ...unprotectedBulkSettings, keepUnfoundQuestTargets: enabled },
+        },
+      }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+      for (const action of ["sell", "donate"]) {
+        assert.equal(collection.availability[action].allowed, !enabled || fulfilled, action);
+      }
+      for (const kind of ["unclaimed", "for_sale", "auction"]) {
+        const loot = runInNewContext(`${handlers}\ngetLootBulkState(options)`, {
+          ...common,
+          options: {
+            availableInventorySlots: 5, bankBalance: 100, dealerPriceMultiplier: 1, quests,
+            bulkSaleProtections: { ...unprotectedBulkSettings, keepUnfoundQuestTargets: enabled },
+            selectedEntries: [{ item: { ...target, status: kind === "auction" ? "auctioned" : kind }, auction: kind === "auction" ? {} : null }],
+          },
+        }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+        assert.equal(loot.availability.remove.allowed, !enabled || fulfilled, kind);
+        if (kind !== "auction") {
+          assert.equal(loot.availability[kind === "for_sale" ? "purchase-donate" : "donate"].allowed, !enabled || fulfilled, kind);
+          assert.equal(loot.availability.acquire.allowed, true);
+        }
+      }
+    }
+  }
+});
+
+test("bulk disposal handlers recheck protection and save preferences before sending bulk-marked requests", async () => {
+  for (const [scope, action, status, endpoint] of [
+    ["collection", "sell", "claimed", "items/first/sell"],
+    ["collection", "donate", "claimed", "items/first/donate"],
+    ["collection", "archive", "claimed", "items/first/archive"],
+    ["loot", "remove", "unclaimed", "items/first/sell"],
+    ["loot", "remove", "for_sale", "items/first/decline"],
+    ["loot", "remove", "auctioned", "auctions/private/dismiss"],
+    ["loot", "donate", "unclaimed", "items/first/donate"],
+    ["loot", "archive", "unclaimed", "items/first/archive"],
+    ["loot", "purchase-donate", "for_sale", "items/first/donate"],
+    ["all", "purchase-donate", "for_sale", "items/first/donate"],
+  ] as const) {
+    let transition: Promise<void> | undefined;
+    let finishSaving!: () => void;
+    const requests: string[] = [];
+    const errors: string[] = [];
+    const selected = { ...item("first"), status };
+    const bulkState = { availability: { [action]: { allowed: false, reason: "Protected quest target." } }, historianQuestByItemId: [] };
+    const name = scope === "all" ? "purchaseAndDonateAllLoot" : scope === "collection" ? "performCollectionBulkAction" : "performLootBulkAction";
+    const perform = runInNewContext(`${handlers}\n${name}`, {
+      collectionBulkState: bulkState, lootBulkState: bulkState,
+      selectedCollectionItems: [selected],
+      selectedLootEntries: [{ item: selected, auction: status === "auctioned" ? { _id: "private" } : null }],
+      purchaseDonateAllSelection: { items: [selected] },
+      viewSettingsSaveQueue: { current: new Promise<void>(resolve => { finishSaving = resolve; }) },
+      startTransition: (callback: () => Promise<void>) => { transition = callback(); },
+      fetch: async (url: string, options: RequestInit) => {
+        requests.push(url);
+        assert.deepEqual(JSON.parse(options.body as string), { bulkAction: true });
+        return Response.json({});
+      },
+      setError: (message: string) => { if (message) errors.push(message); },
+      setNotice() {}, setSelectedCollectionItemIds() {}, setCreatedPrivateAuctions() {}, setDismissedPrivateAuctionIds() {},
+      getCollectionBulkSuccessMessage: () => "", getLootBulkSuccessMessage: () => "", isActionDialogResult: () => false,
+      router: { refresh() {} },
+    }) as (action: string) => void;
+    if (scope !== "all") {
+      perform(action);
+      assert.deepEqual(errors.splice(0), ["Protected quest target."]);
+      assert.equal(transition, undefined, "a newly protected selection cannot execute after confirmation");
+    }
+    bulkState.availability[action].allowed = true;
+    perform(action);
+    assert.deepEqual(requests, [], "disposal waits for pending preference saves");
+    finishSaving();
+    await transition;
+    assert.deepEqual(errors, []);
+    assert.deepEqual(requests, [`/api/play/${endpoint}`]);
+  }
+});
+
+test("Offers retains submitted quest icons while outstanding targets in any quest stay emphasized", () => {
+  const stateSource = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      ["unsubmittedQuestTargetArtworkIds", "submittedQuestTargetArtworkIds"].includes(declaration.name.getText(source)),
+    ),
+  ).map(statement => statement.getText(source)).join("\n");
+  const stateCode = ts.transpileModule(stateSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const [fulfilledStates, expected] of [
+    [[], false], [[false], true], [[true], "submitted"], [[true, false], true],
+  ] as const) {
+    for (const status of ["unclaimed", "for_sale", "auctioned"] as const) {
+      const work = { ...item("target", "common"), status, revealed: true, artwork: { rarity: "common", title: "Work", artist: "Artist" } };
+      const tree = runInNewContext(`${handlers}\n${stateCode}\nrenderLootThumbnail(entry)`, {
+        React, ItemThumbnail: () => null, OfferThumbnail: () => null,
+        quests: fulfilledStates.map(fulfilled => ({ targets: [{ artwork: { _id: work.artwork_id }, fulfilled }] })),
+        useMemo: (getValue: () => unknown) => getValue(),
+        entry: { key: "target", item: work, auction: status === "auctioned" ? {} : null },
+        getOfferRevealTier, offerRevealThresholds: DEFAULT_OFFER_REVEAL_THRESHOLDS,
+        enableReveals: false, revealedLootIds: [], pendingOfferReveals: new Set(), selectedLootEntryKeysSet: new Set(),
+        cancelLootEntryLongPress() {}, moveLootEntryLongPress() {},
+      }) as React.ReactElement<{ children: React.ReactElement<{ researchTarget: boolean | "submitted" }> }>;
+      assert.equal(tree.props.children.props.researchTarget, expected, `${status}: ${fulfilledStates}`);
+    }
+  }
+});
+
+test("Archive all respects Keep unarchived, other protections, and archive eligibility rules", () => {
+  const statement = dashboard.body!.statements.find(statement => ts.isVariableStatement(statement) &&
+    statement.declarationList.declarations.some(declaration => declaration.name.getText(source) === "bulkArchivableLoot"))!;
+  const code = ts.transpileModule(statement.getText(source), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const offers = [
+    archiveOffer("regular"), archiveOffer("quest"), archiveOffer("submitted"),
+    archiveOffer("sealed", { revealed: false }),
+    archiveOffer("style", { card_renderer: "zine" }),
+    ...(["rare", "legendary", "masterpiece"] as const).map(rarity => archiveOffer(rarity, { artwork: { rarity } as HydratedGameItem["artwork"] })),
+    archiveOffer("original", { original: true }), archiveOffer("permanent", { permanent: true }),
+    archiveOffer("repairing", { repairing: true }),
+    archiveOffer("known-forgery", { authenticity: { forgery: true, identified: true } as HydratedGameItem["authenticity"] }),
+    archiveOffer("archived", { archivedCategories: ["standard"] }),
+    archiveOffer("new-variant", { foil: true, archivedCategories: ["standard"] }),
+    archiveOffer("affordable", { status: "for_sale" }),
+    archiveOffer("unaffordable", { status: "for_sale", values: { dealer: 202 } as HydratedGameItem["values"] }),
+    archiveOffer("auction", { status: "auctioned" }),
+  ];
+  for (const keepUnarchived of [false, true]) {
+    const selected = runInNewContext(`${code}\nbulkArchivableLoot`, {
+      activeLootCategory: { entries: offers.map(item => ({ item, auction: item.status === "auctioned" ? {} : null })) },
+      useMemo: (getValue: () => unknown) => getValue(), getArchivePermission,
+      bulkSaleProtections: {
+        keptArtStyleIds: ["zine"], keepRares: true, keepLegendaries: true, keepMasterpieces: true,
+        keepUnfoundQuestTargets: true, keepUnarchived,
+      },
+      unsubmittedQuestTargetArtworkIds: new Set(["art-quest"]),
+      player: { bankBalance: 100 }, dealerPriceMultiplier: 0.5,
+    }) as HydratedGameItem[];
+    assert.deepEqual(Array.from(selected, item => item._id), keepUnarchived ? [] : ["regular", "submitted", "new-variant", "affordable"]);
+  }
+});
+
+test("all offer bulk target lists exclude sealed items even with reveal animations and every optional protection disabled", () => {
+  const names = new Set([
+    "bulkArchivableLoot", "bulkSellableLoot", "quickSellableLoot", "bulkDeclinableLoot",
+    "bulkDismissiblePrivateAuctions", "bulkTransferablePrivateAuctions", "purchaseDonateAllSelection",
+  ]);
+  const declarations = dashboard.body!.statements.filter(statement =>
+    ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration =>
+      names.has(declaration.name.getText(source)),
+    ),
+  ).map(statement => statement.getText(source)).join("\n");
+  const code = ts.transpileModule(`${declarations}\n({
+    archive: bulkArchivableLoot, sell: quickSellableLoot, decline: bulkDeclinableLoot,
+    dismiss: bulkDismissiblePrivateAuctions.map(auction => auction.item),
+    transfer: bulkTransferablePrivateAuctions.map(auction => auction.item),
+    donate: purchaseDonateAllSelection.items,
+  })`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  for (const enableReveals of [false, true]) {
+    for (const acknowledged of [false, true]) {
+      const unclaimed = [
+        archiveOffer("loot"), archiveOffer("sealed", { revealed: false, odds: "unknown" }),
+        archiveOffer("dealer", { status: "for_sale" }),
+        archiveOffer("sealed-dealer", { status: "for_sale", revealed: false }),
+      ];
+      const result = runInNewContext(code, {
+        enableReveals, revealedOfferIds: new Set(acknowledged ? ["sealed"] : []),
+        offerRevealThresholds: { level1: 0, level2: 0, level3: 0 },
+        unclaimed, activeLootCategory: { entries: unclaimed.map(item => ({ item })) },
+        activePrivateAuctionLoot: [true, false].map(revealed => ({
+          item: archiveOffer(revealed ? "auction" : "sealed-auction", { revealed, status: "auctioned" }),
+          transferable: true,
+        })),
+        bulkSaleProtections: unprotectedBulkSettings, unsubmittedQuestTargetArtworkIds: new Set(),
+        player: { bankBalance: 100 }, dealerPriceMultiplier: 1,
+        useMemo: (getValue: () => unknown) => getValue(),
+        getArchivePermission, isBulkLootCandidate, selectBulkPurchaseItems,
+      }) as Record<string, HydratedGameItem[]>;
+      for (const [action, expected] of Object.entries({
+        archive: acknowledged ? ["loot", "sealed", "dealer"] : ["loot", "dealer"],
+        sell: acknowledged ? ["loot", "sealed"] : ["loot"],
+        decline: ["dealer"], donate: ["dealer"], dismiss: ["auction"], transfer: ["auction"],
+      })) {
+        assert.deepEqual(Array.from(result[action], item => item._id), expected, action);
+      }
+    }
+  }
+});
+
+test("mixed unrevealed selections disable every bulk operation, without blocking revealed selections", () => {
+  for (const scope of ["collection", "loot"]) {
+    const evaluate = (revealed: boolean) => {
+      const works = [
+        archiveOffer("known"), archiveOffer("sealed", { revealed, odds: "unknown" }),
+      ].map(item => ({
+        ...item, status: scope === "collection" ? "claimed" : "unclaimed",
+        archivePermission: { allowed: true },
+      }));
+      return runInNewContext(`${handlers}\n${scope === "collection" ? "getCollectionBulkState" : "getLootBulkState"}(options)`, {
+        getArchivePermission, getBulkAcquisitionRequirements, getUnfulfilledHistorianTargetIds, planGallerySelection,
+        options: {
+          selectedItems: works, collectionItems: works, selectedEntries: works.map(item => ({ item })),
+          bulkSaleProtections: unprotectedBulkSettings,
+          offerRevealThresholds: { level1: 0, level2: 0, level3: 0 },
+          quests: [], availableInventorySlots: 10, bankBalance: 1000, dealerPriceMultiplier: 1,
+          displayCap: 10, repairingCap: 10, repairingCount: 0,
+        },
+      }) as { availability: Record<string, { allowed: boolean; reason?: string }> };
+    };
+    for (const availability of Object.values(evaluate(false).availability)) {
+      assert.equal(availability.allowed, false, scope);
+      assert.match(availability.reason!, /Reveal every selected item/);
+    }
+    const revealed = evaluate(true).availability;
+    for (const action of ["archive", "donate", scope === "collection" ? "sell" : "acquire"]) {
+      assert.equal(revealed[action].allowed, true, `${scope}: ${action}`);
+    }
+  }
+});
+
+test("selected disposal uses the same style, rarity and unarchived protections as all-item actions", () => {
+  for (const protections of [
+    { ...unprotectedBulkSettings, keptArtStyleIds: ["zine"] },
+    { ...unprotectedBulkSettings, keepRares: true },
+    { ...unprotectedBulkSettings, keepUnarchived: true },
+  ]) {
+    const work = archiveOffer("protected", {
+      card_renderer: "zine", artwork: { rarity: "rare" } as HydratedGameItem["artwork"],
+      archivePermission: { allowed: true },
+    });
+    for (const scope of ["collection", "loot"]) {
+      const selected = { ...work, status: scope === "collection" ? "claimed" : "unclaimed" };
+      const { availability } = runInNewContext(
+        `${handlers}\n${scope === "collection" ? "getCollectionBulkState" : "getLootBulkState"}(options)`, {
+          getArchivePermission, getBulkAcquisitionRequirements, getUnfulfilledHistorianTargetIds, planGallerySelection,
+          options: {
+            selectedItems: [selected], collectionItems: [selected], selectedEntries: [{ item: selected }],
+            bulkSaleProtections: protections, quests: [],
+            availableInventorySlots: 10, bankBalance: 1000, dealerPriceMultiplier: 1,
+            displayCap: 10, repairingCap: 10, repairingCount: 0,
+          },
+        },
+      ) as { availability: Record<string, { allowed: boolean }> };
+      for (const action of ["archive", "donate", scope === "collection" ? "sell" : "remove"]) {
+        assert.equal(availability[action].allowed, false, `${scope}: ${action}`);
+      }
+      assert.equal(availability[scope === "collection" ? "display" : "acquire"].allowed, true);
+    }
+  }
+});
+
+test("Archive all is disabled while Keep unarchived is checked, without overriding the editable preference", async () => {
+  let action: ts.JsxElement | undefined;
+  let fieldset: ts.JsxElement | undefined;
+  function find(node: ts.Node) {
+    if (ts.isJsxElement(node)) {
+      if (node.openingElement.attributes.getText(source).includes('className="archive-all-loot"')) action = node;
+      if (node.openingElement.tagName.getText(source) === "fieldset" && node.getText(source).includes("Items to preserve")) fieldset = node;
+    }
+    ts.forEachChild(node, find);
+  }
+  find(dashboard);
+  assert.ok(action);
+  assert.ok(fieldset);
+  const code = ts.transpileModule(`const render = () => (<>${action.getText(source)}${fieldset.getText(source)}</>); render()`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React },
+  }).outputText;
+  for (const category of ["unclaimed", "for-sale"]) {
+    let protections = { ...DEFAULT_PLAYER_VIEW_SETTINGS.bulkSaleProtections, keepUnarchived: true };
+    const saved: BulkSaleProtections[] = [];
+    const queue = { current: Promise.resolve() };
+    function render() {
+      return runInNewContext(`${handlers}\n${code}`, {
+        React, activeLootCategory: { id: category }, pending: false, bulkArchivableLoot: [archiveOffer("eligible")],
+        bulkSaleProtections: protections, bulkArtStyleOptions: [], keptActiveArtStyleCount: 0,
+        setBulkSaleProtections: (next: BulkSaleProtections) => { protections = next; },
+        viewSettingsSaveQueue: queue, setError: (message: string) => assert.fail(message),
+        fetch: async (_url: string, options: RequestInit) => {
+          saved.push(JSON.parse(options.body as string).bulkSaleProtections);
+          return Response.json({});
+        },
+      }) as React.ReactElement<{ children: React.ReactElement<Record<string, unknown>>[] }>;
+    }
+    function checkbox(tree: ReturnType<typeof render>, labelText: string) {
+      const inputs = tree.props.children[1].props.children as React.ReactNode[];
+      const labels = inputs.flat().filter(React.isValidElement<{ children: React.ReactElement[] }>);
+      const label = labels.find(label => label.type === "label" && label.props.children[1]?.props.children === labelText)!;
+      return label.props.children[0] as React.ReactElement<{
+        checked: boolean; disabled?: boolean; onChange: (event: unknown) => void;
+      }>;
+    }
+    let tree = render();
+    assert.equal(tree.props.children[0].props.disabled, true);
+    assert.equal(checkbox(tree, "Keep unarchived").props.checked, true);
+    assert.ok(!checkbox(tree, "Keep unarchived").props.disabled);
+    assert.deepEqual(saved, [], "rendering never changes the preference");
+    checkbox(tree, "Keep unarchived").props.onChange({ target: { checked: false } });
+    await queue.current;
+    tree = render();
+    assert.equal(tree.props.children[0].props.disabled, false);
+    assert.equal(checkbox(tree, "Keep unarchived").props.checked, false);
+    assert.equal(saved[0].keepUnarchived, false);
+    checkbox(tree, "Keep unarchived").props.onChange({ target: { checked: true } });
+    await queue.current;
+    tree = render();
+    assert.equal(tree.props.children[0].props.disabled, true);
+    assert.equal(checkbox(tree, "Keep unarchived").props.checked, true);
+    assert.ok(!checkbox(tree, "Keep unarchived").props.disabled);
+    assert.equal(saved[1].keepUnarchived, true);
+  }
+});
+
+test("Archive all rechecks Keep unarchived before executing a stale eligible selection", () => {
+  const startTransition = test.mock.fn();
+  const errors: string[] = [];
+  runInNewContext(`${handlers}\narchiveAllLoot()`, {
+    bulkSaleProtections: { keepUnarchived: true }, bulkArchivableLoot: [archiveOffer("eligible")],
+    startTransition, setError: (message: string) => errors.push(message),
+  });
+  assert.equal(startTransition.mock.callCount(), 0);
+  assert.deepEqual(errors, ['Turn off "Keep unarchived" to archive all offers.']);
+});
+
+test("Archive all skips redundant variants and unaffordable purchases without treating a detected forgery as archived", async () => {
+  const first = archiveOffer("forgery", { status: "for_sale" });
+  const duplicate = archiveOffer("duplicate", { artwork_id: first.artwork_id, status: "for_sale" });
+  const variant = archiveOffer("variant", { artwork_id: first.artwork_id, status: "for_sale", foil: true });
+  const redundant = archiveOffer("redundant", { artwork_id: first.artwork_id, status: "for_sale", foil: true });
+  const expensive = archiveOffer("expensive", { status: "for_sale", values: { dealer: 100 } as HydratedGameItem["values"] });
+  const last = archiveOffer("last", { status: "for_sale" });
+  let transition: Promise<void> | undefined;
+  let finishSaving!: () => void;
+  const requests: string[] = [];
+  const notices: string[] = [];
+  const dialogs: unknown[] = [];
+  const refresh = test.mock.fn();
+  runInNewContext(`${handlers}\narchiveAllLoot()`, {
+    bulkSaleProtections: { keepUnarchived: false },
+    bulkArchivableLoot: [first, duplicate, variant, redundant, expensive, last], archives: [],
+    player: { bankBalance: 60 }, dealerPriceMultiplier: 1,
+    getArchivePermission, getArchiveArtStyle, getArchiveCategories,
+    viewSettingsSaveQueue: { current: new Promise<void>(resolve => { finishSaving = resolve; }) },
+    startTransition: (callback: () => Promise<void>) => { transition = callback(); },
+    fetch: async (url: string, options: RequestInit) => {
+      requests.push(url);
+      assert.deepEqual(JSON.parse(options.body as string), { bulkAction: true });
+      return Response.json(url.includes("/forgery/") ? {
+        actionDialog: { variant: "destroyed", title: "Forgery detected", message: "No additions were archived." },
+      } : {});
+    },
+    setError: (message: string) => { if (message) assert.fail(message); },
+    setNotice: (message: string) => notices.push(message), setActionDialog: (dialog: unknown) => dialogs.push(dialog),
+    isActionDialogResult: (value: unknown) => Boolean(value), router: { refresh },
+  });
+  assert.deepEqual(requests, []);
+  finishSaving();
+  await transition;
+  assert.deepEqual(requests, ["forgery", "duplicate", "variant", "last"].map(id => `/api/play/items/${id}/archive`));
+  assert.match(notices.at(-1)!, /Archived 3 artworks.*1 offer had a special forgery outcome/);
+  assert.equal(dialogs.length, 1);
+  assert.equal(refresh.mock.callCount(), 1);
+});
+
+test("Archive all reports partial failures and refreshes after already-processed offers", async () => {
+  let transition: Promise<void> | undefined;
+  const requests: string[] = [];
+  const errors: string[] = [];
+  const refresh = test.mock.fn();
+  runInNewContext(`${handlers}\narchiveAllLoot()`, {
+    bulkSaleProtections: { keepUnarchived: false },
+    bulkArchivableLoot: ["first", "failed", "untouched"].map(id => archiveOffer(id)), archives: [],
+    player: { bankBalance: 0 }, dealerPriceMultiplier: 1, getArchivePermission, getArchiveArtStyle, getArchiveCategories,
+    startTransition: (callback: () => Promise<void>) => { transition = callback(); },
+    fetch: async (url: string) => {
+      requests.push(url);
+      return url.includes("/failed/") ? Response.json({ error: "Offer changed." }, { status: 409 }) : Response.json({});
+    },
+    setError: (message: string) => errors.push(message), setNotice() {},
+    isActionDialogResult: () => false, router: { refresh },
+  });
+  await transition;
+  assert.deepEqual(requests, ["first", "failed"].map(id => `/api/play/items/${id}/archive`));
+  assert.match(errors.at(-1)!, /1 offer was processed before archiving stopped\. Offer changed\./);
+  assert.equal(refresh.mock.callCount(), 1);
 });
 
 test("featured cards select filtered-out works for the preview and visit their exact gallery position independently", () => {
@@ -692,7 +1158,7 @@ test("auction and Collector sale actions render after the divider in previews an
 
 test("bulk dealer disposal ignores capacity but still requires funds and eligibility", () => {
   const work = {
-    ...item("dealer"), status: "for_sale", values: { dealer: 100 },
+    ...item("dealer"), revealed: true, status: "for_sale", values: { dealer: 100 },
     artwork: { title: "Test" }, archivePermission: { allowed: true },
   };
   const evaluate = (bankBalance: number) => runInNewContext(
@@ -717,7 +1183,7 @@ test("bulk dealer disposal ignores capacity but still requires funds and eligibi
 
 test("Original selections cannot be sold, donated, or offered to Collectors, but may still be acquired", () => {
   const original = {
-    ...item("original", "common"), original: true, permanent: false, status: "claimed",
+    ...item("original", "common"), revealed: true, original: true, permanent: false, status: "claimed",
     condition: 0.5, tags: [], artwork: { title: "Original", rarity: "common" },
     archivePermission: { allowed: false, reason: "Original artwork cannot be archived." },
   };
@@ -959,7 +1425,7 @@ test("Collector offer removal stays available and ordinary pending actions retai
 
 test("permanent selections can be promoted and promoted permanent works consume capacity", () => {
   const work = {
-    ...item("permanent"), status: "claimed", permanent: true, tags: [],
+    ...item("permanent"), revealed: true, status: "claimed", permanent: true, tags: [],
     condition: 0.5, artwork: { title: "Work" }, archivePermission: { allowed: false },
   };
   const evaluate = (collectionItems: unknown[]) => runInNewContext(`${handlers}\ngetCollectionBulkState(options)`, {
@@ -1039,6 +1505,20 @@ function item(id: string, rarity = "masterpiece") {
     revealed: false,
   } as HydratedGameItem;
 }
+
+function archiveOffer(id: string, overrides: Partial<HydratedGameItem> = {}): HydratedGameItem {
+  return {
+    ...item(id, "common"), revealed: true, tags: [], original: false, permanent: false, repairing: false,
+    mint: false, foil: false, unlocked: false, seasonal: false, lottery: 0, vintage: false,
+    authenticity: { forgery: false, identified: false }, values: { actual: 100, dealer: 20 },
+    ...overrides,
+  } as HydratedGameItem;
+}
+
+const unprotectedBulkSettings: BulkSaleProtections = {
+  keptArtStyleIds: [], keepRares: false, keepLegendaries: false, keepMasterpieces: false,
+  keepUnfoundQuestTargets: false, keepUnarchived: false,
+};
 
 function createHarness(t: TestContext) {
   type Update<T> = T | ((current: T) => T);

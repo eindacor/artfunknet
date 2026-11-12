@@ -10,6 +10,10 @@ import ts from "typescript";
 import type { GameItem } from "./gameplay.ts";
 import type * as GalleryMetadataModule from "./gallery-metadata.ts";
 import * as galleryCore from "./gallery-metadata-core.ts";
+import * as bulkSale from "./bulk-sale.ts";
+import * as gameSettings from "./game-settings.ts";
+import * as itemArtwork from "./item-artwork.ts";
+import * as offerReveal from "./offer-reveal.ts";
 import * as permissions from "./item-permissions.ts";
 import * as permanentCollection from "./permanent-collection.ts";
 import * as masterpieceEffects from "./masterpiece-effects.ts";
@@ -72,6 +76,10 @@ async function routes(db: Db, permissionModule: unknown = permissions) {
     "@/server/mongodb": { getDatabase: async () => db },
     "@/server/gallery-metadata": metadata,
     "@/server/item-permissions": permissionModule,
+    "@/server/bulk-sale": bulkSale,
+    "@/server/game-settings": gameSettings,
+    "@/server/item-artwork": itemArtwork,
+    "@/server/offer-reveal": offerReveal,
     "@/server/permanent-collection": permanentCollection,
     "@/server/item-tags": itemTags,
     "@/server/item-mint": { getDemintUpdate: async () => ({ mint: false }) },

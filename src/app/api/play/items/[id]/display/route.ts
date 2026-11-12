@@ -1,5 +1,6 @@
 import type { Db } from "mongodb";
 import { NextResponse } from "next/server";
+import { getBulkRevealPermission } from "@/server/bulk-sale";
 
 import type { GameItem } from "@/server/gameplay";
 import { refreshGalleryMetadata } from "@/server/gallery-metadata";
@@ -17,7 +18,7 @@ type Player = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -39,6 +40,11 @@ export async function POST(
       { error: "This item cannot currently be featured." },
       { status: 409 },
     );
+  }
+  const body = await request.json().catch(() => null);
+  const bulkPermission = await getBulkRevealPermission(database, item, body?.bulkAction);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
   }
   if (item.status === "displayed") return completeFeaturing(database, player._id);
 

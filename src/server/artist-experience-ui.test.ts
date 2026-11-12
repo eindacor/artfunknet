@@ -1910,6 +1910,38 @@ test("shared item status icons render every applicable auction marker", async ()
   }
 });
 
+test("item thumbnails fade submitted quest targets without changing active or non-target markers", async () => {
+  const thumbnail = await load<typeof import("../components/item-thumbnail.tsx")>(
+    "../components/item-thumbnail.tsx",
+    {
+      "./artwork-thumbnail": {
+        default: ({ children }: { children?: React.ReactNode }) =>
+          React.createElement("div", null, children),
+      },
+      "./item-expiration-display": { ItemExpirationTint: () => null },
+    },
+  );
+  for (const researchTarget of [false, true, "submitted"] as const) {
+    const html = renderToStaticMarkup(React.createElement(thumbnail.default, {
+      item: {
+        artwork_id: "quest-art", archivePermission: { allowed: false, reason: "Already archived." },
+        card_renderer: "museum", date_received: new Date().toISOString(), foil: false,
+        repairing: false, status: "unclaimed", tags: [],
+      },
+      researchTarget,
+    }));
+    if (researchTarget === "submitted") {
+      assert.match(html, /aria-label="Submitted quest target"/);
+      assert.match(html, /thumbnail-quest-target-submitted/);
+    } else if (researchTarget) {
+      assert.match(html, /aria-label="Quest target"/);
+      assert.doesNotMatch(html, /thumbnail-quest-target-submitted/);
+    } else {
+      assert.doesNotMatch(html, /thumbnail-quest-target/);
+    }
+  }
+});
+
 test("auction controls prevent sellers and commission recipients from bidding in either view or a linked dialog", async () => {
   const artwork: Artwork = {
     _id: "auction-work", artist_id: "artist", artist: "Artist", title: "Auction work", date: 2026,

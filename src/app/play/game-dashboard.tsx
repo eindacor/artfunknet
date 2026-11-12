@@ -80,6 +80,7 @@ import {
   canQuickSellItem,
   getOfferRevealTier,
   isOfferRevealed,
+  isRevealedForBulkAction,
   type OfferRevealThresholds,
 } from "@/server/offer-reveal";
 import {
@@ -102,6 +103,8 @@ import { getArtworkImageUrl } from "@/server/artwork-image-url";
 import {
   ARCHIVE_FILTER_CATEGORIES,
   filterAndSortArchiveEntries,
+  getArchiveArtStyle,
+  getArchiveCategories,
   getDefaultArchiveBrowseFilters,
   getArchivePropertyProgress,
   type ArchiveBrowseFilters,
@@ -112,8 +115,8 @@ import {
 import { planGallerySelection } from "@/server/gallery-selection";
 import {
   isBulkLootCandidate,
+  getBulkItemProtection,
   type BulkSaleProtections,
-  shouldPreserveBulkSaleItem,
 } from "@/server/bulk-sale";
 import {
   getUnfulfilledHistorianTargetIds,
@@ -867,7 +870,7 @@ export default function GameDashboard({
   const selectedLootAuction = selectedLootEntry?.auction ?? null;
   const selectedLootUnrevealed = selectedLootItem
     ? !offerIsRevealed(selectedLootItem) : false;
-  const unfoundQuestTargetArtworkIds = useMemo(
+  const unsubmittedQuestTargetArtworkIds = useMemo(
     () =>
       new Set(
         quests.flatMap((quest) =>
@@ -878,6 +881,42 @@ export default function GameDashboard({
       ),
     [quests],
   );
+  const submittedQuestTargetArtworkIds = useMemo(
+    () =>
+      new Set(
+        quests.flatMap((quest) =>
+          quest.targets
+            .filter((target) => target.fulfilled)
+            .map((target) => target.artwork._id),
+        ),
+      ),
+    [quests],
+  );
+  const bulkArchivableLoot = useMemo(
+    () =>
+      (activeLootCategory?.entries ?? [])
+        .filter((entry) => !entry.auction)
+        .map((entry) => entry.item)
+        .filter((item) =>
+          !bulkSaleProtections.keepUnarchived &&
+          ["unclaimed", "for_sale"].includes(item.status) &&
+          getArchivePermission(
+            item, item.archivedCategories ?? [], item.archivedArtStyles ?? [],
+          ).allowed &&
+          (item.status !== "for_sale" ||
+            Math.floor(item.values.dealer * dealerPriceMultiplier) <= player.bankBalance) &&
+          getBulkItemProtection(
+            {
+              ...item,
+              ...(revealedOfferIds.has(item._id) ? { revealed: true } : {}),
+              unsubmittedQuestTarget: unsubmittedQuestTargetArtworkIds.has(item.artwork_id),
+            },
+            bulkSaleProtections,
+            offerRevealThresholds,
+          ).allowed,
+        ),
+    [activeLootCategory?.entries, bulkSaleProtections, dealerPriceMultiplier, player.bankBalance, unsubmittedQuestTargetArtworkIds, offerRevealThresholds, revealedOfferIds],
+  );
   const bulkSellableLoot = useMemo(
     () =>
       unclaimed.filter(
@@ -885,61 +924,64 @@ export default function GameDashboard({
           item.status === "unclaimed" &&
           !item.permanent &&
           !item.original &&
-          !shouldPreserveBulkSaleItem(
+          getBulkItemProtection(
             {
               ...item,
-              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+              ...(revealedOfferIds.has(item._id) ? { revealed: true } : {}),
+              unsubmittedQuestTarget: unsubmittedQuestTargetArtworkIds.has(
                 item.artwork_id,
               ),
             },
             bulkSaleProtections,
-          ),
+            offerRevealThresholds,
+          ).allowed,
       ),
-    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
+    [bulkSaleProtections, unsubmittedQuestTargetArtworkIds, unclaimed, offerRevealThresholds, revealedOfferIds],
   );
-  const quickSellableLoot = useMemo(
-    () => bulkSellableLoot.filter((item) =>
-      !enableReveals || revealedOfferIds.has(item._id) || canQuickSellItem(item, offerRevealThresholds),
-    ),
-    [bulkSellableLoot, enableReveals, offerRevealThresholds, revealedOfferIds],
-  );
+  const quickSellableLoot = bulkSellableLoot;
   const bulkDeclinableLoot = useMemo(
     () =>
       unclaimed.filter(
         (item) =>
           item.status === "for_sale" &&
           !item.permanent &&
-          !shouldPreserveBulkSaleItem(
+          getBulkItemProtection(
             {
               ...item,
-              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+              ...(revealedOfferIds.has(item._id) ? { revealed: true } : {}),
+              unsubmittedQuestTarget: unsubmittedQuestTargetArtworkIds.has(
                 item.artwork_id,
               ),
             },
             bulkSaleProtections,
-          ),
+            offerRevealThresholds,
+          ).allowed,
       ),
-    [bulkSaleProtections, unfoundQuestTargetArtworkIds, unclaimed],
+    [bulkSaleProtections, unsubmittedQuestTargetArtworkIds, unclaimed, offerRevealThresholds, revealedOfferIds],
   );
   const bulkDismissiblePrivateAuctions = useMemo(
     () =>
       activePrivateAuctionLoot.filter(
         (auction) =>
           isBulkLootCandidate(auction.item) &&
-          !shouldPreserveBulkSaleItem(
+          getBulkItemProtection(
             {
               ...auction.item,
-              unfoundQuestTarget: unfoundQuestTargetArtworkIds.has(
+              ...(revealedOfferIds.has(auction.item._id) ? { revealed: true } : {}),
+              unsubmittedQuestTarget: unsubmittedQuestTargetArtworkIds.has(
                 auction.item.artwork_id,
               ),
             },
             bulkSaleProtections,
-          ),
+            offerRevealThresholds,
+          ).allowed,
       ),
     [
       bulkSaleProtections,
       activePrivateAuctionLoot,
-      unfoundQuestTargetArtworkIds,
+      unsubmittedQuestTargetArtworkIds,
+      offerRevealThresholds,
+      revealedOfferIds,
     ],
   );
   const bulkTransferablePrivateAuctions = useMemo(
@@ -1124,16 +1166,19 @@ export default function GameDashboard({
       getCollectionBulkState({
         collectionItems,
         displayCap: player.displayCap,
+        bulkSaleProtections,
+        offerRevealThresholds,
         quests,
         repairingCap: player.repairingCap,
         repairingCount,
         selectedItems: selectedCollectionItems.map((item) =>
-          !enableReveals || revealedOfferIds.has(item._id) ? { ...item, revealed: true } : item,
+          revealedOfferIds.has(item._id) ? { ...item, revealed: true } : item,
         ),
       }),
     [
+      bulkSaleProtections,
       collectionItems,
-      enableReveals,
+      offerRevealThresholds,
       player.displayCap,
       player.repairingCap,
       quests,
@@ -1158,11 +1203,18 @@ export default function GameDashboard({
         availableInventorySlots,
         bankBalance: player.bankBalance,
         dealerPriceMultiplier,
+        bulkSaleProtections,
+        offerRevealThresholds,
         quests,
-        selectedEntries: selectedLootEntries,
+        selectedEntries: selectedLootEntries.map((entry) => revealedOfferIds.has(entry.item._id)
+          ? { ...entry, item: { ...entry.item, revealed: true } }
+          : entry),
       }),
     [
       availableInventorySlots,
+      bulkSaleProtections,
+      offerRevealThresholds,
+      revealedOfferIds,
       dealerPriceMultiplier,
       player.bankBalance,
       quests,
@@ -1674,6 +1726,11 @@ export default function GameDashboard({
   }
 
   function performCollectionBulkAction(action: CollectionBulkAction) {
+    const availability = collectionBulkState.availability[action];
+    if (!availability.allowed) {
+      setError(availability.reason ?? "The selected items do not qualify.");
+      return;
+    }
     if (action === "tag") {
       setTagEditorItems([...selectedCollectionItems]);
       return;
@@ -1717,6 +1774,7 @@ export default function GameDashboard({
       }
 
       try {
+        await viewSettingsSaveQueue.current;
         if (action === "set-gallery") {
           const result = await postAction("/api/play/items/set-gallery", {
             itemIds: selectedItems.map((item) => item._id),
@@ -1737,11 +1795,12 @@ export default function GameDashboard({
             if (action === "take-down") {
               result = await postAction(
                 `/api/play/items/${item._id}/undisplay`,
+                { bulkAction: true },
               );
             } else if (action === "collector-sale") {
               result = await postAction(
                 `/api/play/items/${item._id}/collector-sale`,
-                { offered: true },
+                { offered: true, bulkAction: true },
               );
             } else if (action === "historian") {
               const questId = historianQuestByItemId.get(item._id);
@@ -1752,7 +1811,7 @@ export default function GameDashboard({
               }
               result = await postAction(
                 `/api/play/items/${item._id}/send-to-historian`,
-                { questId },
+                { questId, bulkAction: true },
               );
               if (typeof result.autoClaimQuestId === "string") {
                 await postAction(
@@ -1762,6 +1821,7 @@ export default function GameDashboard({
             } else {
               result = await postAction(
                 `/api/play/items/${item._id}/${action}`,
+                { bulkAction: true },
               );
             }
 
@@ -1841,6 +1901,11 @@ export default function GameDashboard({
   }
 
   function performLootBulkAction(action: LootBulkAction) {
+    const availability = lootBulkState.availability[action];
+    if (!availability.allowed) {
+      setError(availability.reason ?? "The selected offers do not qualify.");
+      return;
+    }
     const selectedEntries = [...selectedLootEntries];
     const historianQuestByItemId = new Map(
       lootBulkState.historianQuestByItemId,
@@ -1881,6 +1946,7 @@ export default function GameDashboard({
       }
 
       try {
+        await viewSettingsSaveQueue.current;
         if (action === "acquire" || action === "collector-sale") {
           const result = await postAction("/api/play/items/acquire-many", {
             itemIds: selectedEntries.map((entry) => entry.item._id),
@@ -1900,6 +1966,7 @@ export default function GameDashboard({
               if (entry.auction) {
                 result = await postAction(
                   `/api/play/auctions/${entry.auction._id}/dismiss`,
+                  { bulkAction: true },
                 );
                 dismissedAuctionIds.push(entry.auction._id);
               } else {
@@ -1907,11 +1974,13 @@ export default function GameDashboard({
                   `/api/play/items/${entry.item._id}/${
                     entry.item.status === "for_sale" ? "decline" : "sell"
                   }`,
+                  { bulkAction: true },
                 );
               }
             } else if (action === "purchase-donate") {
               result = await postAction(
                 `/api/play/items/${entry.item._id}/donate`,
+                { bulkAction: true },
               );
             } else if (action === "historian") {
               const questId = historianQuestByItemId.get(entry.item._id);
@@ -1922,7 +1991,7 @@ export default function GameDashboard({
               }
               result = await postAction(
                 `/api/play/items/${entry.item._id}/send-to-historian`,
-                { questId },
+                { questId, bulkAction: true },
               );
               if (typeof result.autoClaimQuestId === "string") {
                 await postAction(
@@ -1932,6 +2001,7 @@ export default function GameDashboard({
             } else {
               result = await postAction(
                 `/api/play/items/${entry.item._id}/${action}`,
+                { bulkAction: true },
               );
             }
 
@@ -2107,6 +2177,12 @@ export default function GameDashboard({
     saveViewSettings({ cratePurchaseCount: next });
   }
 
+  function changeBulkKeptArtStyles(keptArtStyleIds: BulkSaleProtections["keptArtStyleIds"]) {
+    const next = { ...bulkSaleProtections, keptArtStyleIds };
+    setBulkSaleProtections(next);
+    saveViewSettings({ bulkSaleProtections: next });
+  }
+
   function purchaseAndDonateAllLoot() {
     const itemsToDonate = [...purchaseDonateAllSelection.items];
     setError("");
@@ -2116,10 +2192,15 @@ export default function GameDashboard({
       let totalKarma = 0;
       const specialOutcomes: ActionDialogResult[] = [];
       try {
+        await viewSettingsSaveQueue.current;
         for (const item of itemsToDonate) {
           const donationResponse = await fetch(
             `/api/play/items/${item._id}/donate`,
-            { method: "POST" },
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ bulkAction: true }),
+            },
           );
           const donationBody = (await donationResponse
             .json()
@@ -2168,6 +2249,80 @@ export default function GameDashboard({
             ? `${completed} of ${itemsToDonate.length} offers were purchased and donated before the action stopped. ${message}`
             : message,
         );
+        router.refresh();
+      }
+    });
+  }
+
+  function archiveAllLoot() {
+    if (bulkSaleProtections.keepUnarchived) {
+      setError('Turn off "Keep unarchived" to archive all offers.');
+      return;
+    }
+    const itemsToArchive = [...bulkArchivableLoot];
+    setError("");
+    setNotice("");
+    startTransition(async () => {
+      let completed = 0;
+      let archived = 0;
+      let remainingBudget = player.bankBalance;
+      const progressByArtwork = new Map(archives.map((archive) => [
+        archive.artwork_id,
+        { modifiers: archive.modifiers, artStyles: archive.artStyles },
+      ]));
+      const specialOutcomes: ActionDialogResult[] = [];
+      try {
+        await viewSettingsSaveQueue.current;
+        for (const item of itemsToArchive) {
+          const progress = progressByArtwork.get(item.artwork_id) ?? {
+            modifiers: item.archivedCategories ?? [],
+            artStyles: item.archivedArtStyles ?? [],
+          };
+          if (!getArchivePermission(item, progress.modifiers, progress.artStyles).allowed) continue;
+          const purchaseCost = item.status === "for_sale"
+            ? Math.floor(item.values.dealer * dealerPriceMultiplier)
+            : 0;
+          if (purchaseCost > remainingBudget) continue;
+          const response = await fetch(`/api/play/items/${item._id}/archive`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ bulkAction: true }),
+          });
+          const body = await response.json().catch(() => ({})) as {
+            actionDialog?: ActionDialogResult;
+            error?: string;
+          };
+          if (!response.ok) throw new Error(body.error ?? "An offer could not be archived.");
+          completed += 1;
+          if (isActionDialogResult(body.actionDialog)) {
+            specialOutcomes.push(body.actionDialog);
+          } else {
+            archived += 1;
+            remainingBudget -= purchaseCost;
+            progressByArtwork.set(item.artwork_id, {
+              modifiers: [...new Set([...progress.modifiers, ...getArchiveCategories(item)])],
+              artStyles: [...new Set([...progress.artStyles, getArchiveArtStyle(item)])].filter((style) => style !== "museum"),
+            });
+          }
+        }
+        if (specialOutcomes.length > 0) {
+          setActionDialog({
+            variant: specialOutcomes.length === 1 ? specialOutcomes[0].variant : "mixed",
+            title: specialOutcomes.length === 1 ? specialOutcomes[0].title : "Archive inspection outcomes",
+            message: specialOutcomes.map((outcome) => outcome.message).join(" "),
+          });
+        }
+        setNotice(
+          `Archived ${archived} ${archived === 1 ? "artwork" : "artworks"}.${
+            specialOutcomes.length > 0
+              ? ` ${specialOutcomes.length} ${specialOutcomes.length === 1 ? "offer had a special forgery outcome." : "offers had special forgery outcomes."}`
+              : ""
+          }`,
+        );
+        router.refresh();
+      } catch (archiveError) {
+        const message = archiveError instanceof Error ? archiveError.message : "The bulk archive action could not be completed.";
+        setError(completed > 0 ? `${completed} ${completed === 1 ? "offer was" : "offers were"} processed before archiving stopped. ${message}` : message);
         router.refresh();
       }
     });
@@ -3372,7 +3527,13 @@ export default function GameDashboard({
         <ItemThumbnail
           alt=""
           item={item}
-          researchTarget={unfoundQuestTargetArtworkIds.has(item.artwork_id)}
+          researchTarget={
+            unsubmittedQuestTargetArtworkIds.has(item.artwork_id)
+              ? true
+              : submittedQuestTargetArtworkIds.has(item.artwork_id)
+                ? "submitted"
+                : false
+          }
           size={82}
         />
       </OfferThumbnail>
@@ -3411,7 +3572,7 @@ export default function GameDashboard({
         <ItemThumbnail
           alt=""
           item={item}
-          researchTarget={unfoundQuestTargetArtworkIds.has(item.artwork_id)}
+          researchTarget={unsubmittedQuestTargetArtworkIds.has(item.artwork_id)}
           showDisplayStatus={showDisplayStatus}
           size={82}
         />
@@ -3790,6 +3951,17 @@ export default function GameDashboard({
                       </div>
                       <div className="loot-section-controls">
                         <div className="loot-section-actions">
+                        {activeLootCategory?.id === "unclaimed" || activeLootCategory?.id === "for-sale" ? (
+                          <button
+                            className="archive-all-loot"
+                            disabled={pending || bulkSaleProtections.keepUnarchived || bulkArchivableLoot.length === 0}
+                            onClick={archiveAllLoot}
+                            type="button"
+                          >
+                            <i aria-hidden="true" className="fa fa-archive" />{" "}
+                            {activeLootCategory.id === "for-sale" ? "Purchase and archive all" : "Archive all"}
+                          </button>
+                        ) : null}
                         {activeLootCategory?.id === "unclaimed" ? (
                           <>
                             <button
@@ -3919,7 +4091,7 @@ export default function GameDashboard({
                                 ["keepUnarchived", "Keep unarchived"],
                                 [
                                   "keepUnfoundQuestTargets",
-                                  "Keep unfound quest targets",
+                                  "Keep unsubmitted quest targets",
                                 ],
                               ] as const
                             ).map(([key, label]) => (
@@ -3954,6 +4126,17 @@ export default function GameDashboard({
                                 </small>
                               </summary>
                               <div className="bulk-art-style-options-menu">
+                                <div className="bulk-art-style-selection-actions">
+                                  <button
+                                    onClick={() => changeBulkKeptArtStyles(bulkArtStyleOptions.map((style) => style.id))}
+                                    type="button"
+                                  >
+                                    Select all
+                                  </button>
+                                  <button onClick={() => changeBulkKeptArtStyles([])} type="button">
+                                    Select none
+                                  </button>
+                                </div>
                                 {bulkArtStyleOptions.map((style) => (
                                   <label key={style.id}>
                                     <input
@@ -3969,17 +4152,9 @@ export default function GameDashboard({
                                         } else {
                                           selected.delete(style.id);
                                         }
-                                        const next = {
-                                          ...bulkSaleProtections,
-                                          keptArtStyleIds:
-                                            DROPPABLE_CARD_RENDERER_IDS.filter(
-                                              (id) => selected.has(id),
-                                            ),
-                                        };
-                                        setBulkSaleProtections(next);
-                                        saveViewSettings({
-                                          bulkSaleProtections: next,
-                                        });
+                                        changeBulkKeptArtStyles(
+                                          DROPPABLE_CARD_RENDERER_IDS.filter((id) => selected.has(id)),
+                                        );
                                       }}
                                       type="checkbox"
                                     />
@@ -4126,7 +4301,7 @@ export default function GameDashboard({
                             lootPrimaryAction(selectedLootItem)
                           )
                         }
-                        researchTarget={unfoundQuestTargetArtworkIds.has(
+                        researchTarget={unsubmittedQuestTargetArtworkIds.has(
                           selectedLootItem.artwork_id,
                         )}
                         showActionHelp
@@ -4260,7 +4435,7 @@ export default function GameDashboard({
                         ? undefined
                         : collectionGalleryAction(selectedCollectionItem)
                     }
-                    researchTarget={unfoundQuestTargetArtworkIds.has(
+                    researchTarget={unsubmittedQuestTargetArtworkIds.has(
                       selectedCollectionItem.artwork_id,
                     )}
                     showActionHelp
@@ -4335,7 +4510,7 @@ export default function GameDashboard({
               emptyText="No works are currently featured."
               items={displayed}
               legendaryAttributes={legendaryAttributes}
-              researchArtworkIds={unfoundQuestTargetArtworkIds}
+              researchArtworkIds={unsubmittedQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               title={`featured (${displayed.length}/${player.displayCap})`}
@@ -4347,7 +4522,7 @@ export default function GameDashboard({
               emptyText="Your inventory is empty."
               items={sortedInventory}
               legendaryAttributes={legendaryAttributes}
-              researchArtworkIds={unfoundQuestTargetArtworkIds}
+              researchArtworkIds={unsubmittedQuestTargetArtworkIds}
               canCustomize
               styleInventory={player.cardStyleInventory}
               donationEffects={donationEffects}
@@ -4941,7 +5116,7 @@ export default function GameDashboard({
               router.refresh();
             }}
             onClose={() => setGalleryArtStyleItem(null)}
-            researchTarget={unfoundQuestTargetArtworkIds.has(
+            researchTarget={unsubmittedQuestTargetArtworkIds.has(
               galleryArtStyleItem.artwork_id,
             )}
             styleInventory={player.cardStyleInventory}
@@ -6392,12 +6567,16 @@ function getLootBulkState({
   availableInventorySlots,
   bankBalance,
   dealerPriceMultiplier,
+  bulkSaleProtections,
+  offerRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
   quests,
   selectedEntries,
 }: {
   availableInventorySlots: number;
   bankBalance: number;
   dealerPriceMultiplier: number;
+  bulkSaleProtections?: BulkSaleProtections;
+  offerRevealThresholds?: OfferRevealThresholds;
   quests: readonly ArtHistorianQuestView[];
   selectedEntries: readonly LootEntry[];
 }): {
@@ -6411,6 +6590,21 @@ function getLootBulkState({
     reason,
   });
   const selectedItems = selectedEntries.map((entry) => entry.item);
+  if (selectedItems.some((item) => !isRevealedForBulkAction(item, offerRevealThresholds))) {
+    return {
+      availability: Object.fromEntries(
+        ["archive", "acquire", "donate", "remove", "historian", "purchase-donate", "collector-sale"]
+          .map((action) => [action, unavailable("Reveal every selected item before using bulk actions.")]),
+      ) as Record<LootBulkAction, CollectionBulkAvailability>,
+      historianQuestByItemId: new Map(),
+      totalPurchaseCost: 0,
+    };
+  }
+  const bulkProtection = bulkSaleProtections ? selectedItems.map((item) => getBulkItemProtection({
+    ...item,
+    unsubmittedQuestTarget: quests.some((quest) =>
+      getUnfulfilledHistorianTargetIds(quest).includes(item.artwork_id)),
+  }, bulkSaleProtections, offerRevealThresholds)).find((permission) => !permission.allowed) : undefined;
   const privateAuctionEntry = selectedEntries.find((entry) => entry.auction);
   const purchaseRequirements = getBulkAcquisitionRequirements(
     selectedItems,
@@ -6539,12 +6733,12 @@ function getLootBulkState({
 
   return {
     availability: {
-      archive,
+      archive: archive.allowed ? bulkProtection ?? archive : archive,
       acquire,
-      donate,
-      remove,
+      donate: donate.allowed ? bulkProtection ?? donate : donate,
+      remove: remove.allowed ? bulkProtection ?? remove : remove,
       historian,
-      "purchase-donate": purchaseDonate,
+      "purchase-donate": purchaseDonate.allowed ? bulkProtection ?? purchaseDonate : purchaseDonate,
       "collector-sale": selectedItems
         .map((item) => getItemDisposalPermission(item, "collector-sale"))
         .find((permission) => !permission.allowed) ?? acquire,
@@ -6557,6 +6751,8 @@ function getLootBulkState({
 function getCollectionBulkState({
   collectionItems,
   displayCap,
+  bulkSaleProtections,
+  offerRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
   quests,
   repairingCap,
   repairingCount,
@@ -6564,6 +6760,8 @@ function getCollectionBulkState({
 }: {
   collectionItems: readonly HydratedGameItem[];
   displayCap: number;
+  bulkSaleProtections?: BulkSaleProtections;
+  offerRevealThresholds?: OfferRevealThresholds;
   quests: readonly ArtHistorianQuestView[];
   repairingCap: number;
   repairingCount: number;
@@ -6577,6 +6775,23 @@ function getCollectionBulkState({
     allowed: false,
     reason,
   });
+  if (selectedItems.some((item) => !isRevealedForBulkAction(item, offerRevealThresholds))) {
+    return {
+      availability: Object.fromEntries(
+        ["display", "take-down", "set-gallery", "tag", "collector-sale", "repair", "sell", "historian", "archive", "donate"]
+          .map((action) => [action, unavailable("Reveal every selected item before using bulk actions.")]),
+      ) as Record<CollectionBulkAction, CollectionBulkAvailability>,
+      historianQuestByItemId: new Map(),
+    };
+  }
+  const bulkProtection = bulkSaleProtections ? selectedItems.map((item) => getBulkItemProtection({
+    ...item,
+    archivePermission: item.archivePermission ?? getArchivePermission(
+      item, item.archivedCategories ?? [], item.archivedArtStyles ?? [],
+    ),
+    unsubmittedQuestTarget: quests.some((quest) =>
+      getUnfulfilledHistorianTargetIds(quest).includes(item.artwork_id)),
+  }, bulkSaleProtections, offerRevealThresholds)).find((permission) => !permission.allowed) : undefined;
   const selectedIds = new Set(selectedItems.map((item) => item._id));
   const duplicateArtworkId = selectedItems.find(
     (item, index) =>
@@ -6640,7 +6855,10 @@ function getCollectionBulkState({
     displayCap,
   );
   const setGallery = galleryPlan.ok
-    ? available()
+    ? collectionItems.some((item) => galleryPlan.takeDownIds.includes(item._id) &&
+      !isRevealedForBulkAction(item, offerRevealThresholds))
+      ? unavailable("Reveal every affected item before setting the gallery.")
+      : available()
     : unavailable(galleryPlan.reason);
   const takeDown = selectedItems.every(
     (item) => item.status === "displayed",
@@ -6649,14 +6867,12 @@ function getCollectionBulkState({
     : unavailable("Every selected item must currently be featured.");
 
   function disposalAvailability(action: ItemDisposalAction) {
-    return selectedItems
+    const permission = selectedItems
       .map((item) => getItemDisposalPermission(item, action))
       .find((permission) => !permission.allowed) ?? available();
+    return permission.allowed && action !== "collector-sale" ? bulkProtection ?? permission : permission;
   }
-  let sell = disposalAvailability("sell");
-  if (sell.allowed && selectedItems.some((item) => !canQuickSellItem(item))) {
-    sell = unavailable("Reveal every selected item before selling.");
-  }
+  const sell = disposalAvailability("sell");
   const donate = disposalAvailability("donate");
   let collectorSale = disposalAvailability("collector-sale");
   const alreadyOffered = selectedItems.find((item) => item.tags.includes("for sale"));
@@ -6739,7 +6955,7 @@ function getCollectionBulkState({
       historian: historianAssignment.reason
         ? unavailable(historianAssignment.reason)
         : available(),
-      archive,
+      archive: archive.allowed ? bulkProtection ?? archive : archive,
       donate,
     },
     historianQuestByItemId: historianAssignment.questByItemId,

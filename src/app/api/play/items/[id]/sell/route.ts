@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getBulkDisposalPermission } from "@/server/bulk-sale";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import type { GameItem } from "@/server/gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
@@ -39,7 +40,7 @@ type Player = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -61,6 +62,10 @@ export async function POST(
   const permission = getItemDisposalPermission(item, "sell");
   if (!permission.allowed) {
     return NextResponse.json({ error: permission.reason }, { status: 409 });
+  }
+  const bulkPermission = await getBulkDisposalPermission(database, auth.session.playerId, item, request);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
   }
   const settings = await getGameplaySettings(database);
   const [hydrated] = await hydrateGameItems(database, [item]);

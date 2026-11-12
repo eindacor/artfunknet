@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import type { Auction } from "@/server/auction-gameplay";
+import { getBulkDisposalPermission } from "@/server/bulk-sale";
+import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
 import { requirePlayerApi } from "@/server/player-api";
 
@@ -13,7 +15,7 @@ type AuctionDismissalPlayer = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -32,6 +34,15 @@ export async function POST(
       { error: "This limited-access auction is no longer available." },
       { status: 409 },
     );
+  }
+  const item = await database.collection<GameItem>("items").findOne(
+    { _id: auction.item_id },
+  );
+  if (item) {
+    const bulkPermission = await getBulkDisposalPermission(database, auth.session.playerId, item, request);
+    if (!bulkPermission.allowed) {
+      return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
+    }
   }
 
   const dismissed = await database

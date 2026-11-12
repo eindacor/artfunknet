@@ -35,7 +35,7 @@ test("donate all respects bulk sale protection filters", () => {
         artwork: { rarity: "common" },
         archivePermission: { allowed: false, reason: "Already archived." },
         card_renderer: undefined,
-        unfoundQuestTarget: false,
+        unsubmittedQuestTarget: false,
       },
       protections,
     ),

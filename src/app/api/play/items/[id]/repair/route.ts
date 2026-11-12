@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBulkRevealPermission } from "@/server/bulk-sale";
 
 import type { GameItem } from "@/server/gameplay";
 import { getGameplaySettings } from "@/server/game-settings";
@@ -15,7 +16,7 @@ type Player = {
 };
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requirePlayerApi();
@@ -23,6 +24,19 @@ export async function POST(
 
   const { id } = await params;
   const database = await getDatabase();
+  const body = await request.json().catch(() => null);
+  if (body?.bulkAction === true) {
+    const item = await database.collection<GameItem>("items").findOne({
+      _id: id, owner: auth.session.playerId,
+    });
+    const permission = item ? await getBulkRevealPermission(database, item, true) : null;
+    if (!permission?.allowed) {
+      return NextResponse.json(
+        { error: permission?.reason ?? "This item is not available for repair." },
+        { status: 409 },
+      );
+    }
+  }
   const now = new Date();
   const settings = await getGameplaySettings(database);
   const config = settings.active;

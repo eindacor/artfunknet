@@ -6,6 +6,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import { DROPPABLE_CARD_RENDERER_IDS } from "../components/item-cards/catalog.ts";
 import {
   filterBulkLootCandidates,
+  getBulkDisposalPermission,
   getFilteredBulkLootCandidates,
   getBulkForgeryDialog,
   getBulkForgeryMessage,
@@ -80,12 +81,12 @@ test("bulk sale protection preserves archive-eligible variants", () => {
   );
 });
 
-test("bulk sale protection preserves unfound quest targets", () => {
+test("bulk sale protection preserves quest targets", () => {
   assert.equal(
     shouldPreserveBulkSaleItem(
       {
         artwork: { rarity: "common" },
-        unfoundQuestTarget: true,
+        unsubmittedQuestTarget: true,
       },
       protections,
     ),
@@ -95,7 +96,7 @@ test("bulk sale protection preserves unfound quest targets", () => {
     shouldPreserveBulkSaleItem(
       {
         artwork: { rarity: "common" },
-        unfoundQuestTarget: false,
+        unsubmittedQuestTarget: false,
       },
       { ...protections, keptArtStyleIds: [], keepUnarchived: false },
     ),
@@ -103,7 +104,7 @@ test("bulk sale protection preserves unfound quest targets", () => {
   );
 });
 
-test("bulk sale protection ignores targets already submitted to the Historian", async () => {
+test("bulk quest protection ignores owned copies and ends only after submission to the Historian", async () => {
   const mongoServer = await MongoMemoryServer.create();
   const client = new MongoClient(mongoServer.getUri());
 
@@ -148,37 +149,53 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
       misprint: false,
       values: { sell: 100, artist: 100, collector: 100 },
     } as GameItem;
-    await database.collection<GameItem>("items").insertOne(item);
+    await database.collection<GameItem>("items").insertMany([
+      item,
+      { ...item, _id: "owned-copy", status: "claimed" },
+    ]);
     await database.collection<ArtHistorianQuest>("quests").insertOne({
       _id: "quest-1",
       owner_id: playerId,
       target: ["art-1"],
-      fulfilled_targets: [
-        {
-          artwork_id: "art-1",
-          item_id: "submitted-art-1",
-          item_snapshot: { ...item, _id: "submitted-art-1" },
-          fulfilled_at: new Date().toISOString(),
-          special: false,
-        },
-      ],
+      fulfilled_targets: [],
       reward: { money: 100, xp: 10, xp_chunk_percentage: 0.5 },
       rarity: "common",
       min_requirement: 1,
       created_at: new Date().toISOString(),
     });
 
+    const questProtections = {
+      keptArtStyleIds: [],
+      keepRares: false,
+      keepLegendaries: false,
+      keepMasterpieces: false,
+      keepUnfoundQuestTargets: true,
+      keepUnarchived: false,
+    };
+    for (const ownedStatus of ["claimed", "displayed"] as const) {
+      await database.collection<GameItem>("items").updateOne({ _id: "owned-copy" }, { $set: { status: ownedStatus } });
+      for (const status of ["unclaimed", "for_sale"] as const) {
+        await database.collection<GameItem>("items").updateOne({ _id: item._id }, { $set: { status } });
+        const protectedItems = await getFilteredBulkLootCandidates(database, playerId, questProtections, [status]);
+        assert.deepEqual(protectedItems.items, [], `${status} targets stay protected with a ${ownedStatus} copy`);
+      }
+      const privateAuction = { ...item, owner: "system:auction-house", status: "auctioned" as const };
+      assert.deepEqual((await filterBulkLootCandidates(database, playerId, questProtections, [privateAuction])).items, []);
+      assert.deepEqual((await filterBulkLootCandidates(database, playerId, {
+        ...questProtections, keepUnfoundQuestTargets: false,
+      }, [privateAuction])).items.map(candidate => candidate._id), [item._id]);
+    }
+
+    await database.collection<ArtHistorianQuest>("quests").updateOne({ _id: "quest-1" }, {
+      $set: { fulfilled_targets: [{
+        artwork_id: "art-1", item_id: "submitted-art-1", item_snapshot: { ...item, _id: "submitted-art-1" },
+        fulfilled_at: new Date().toISOString(), special: false,
+      }] },
+    });
     const result = await getFilteredBulkLootCandidates(
       database,
       playerId,
-      {
-        keptArtStyleIds: [],
-        keepRares: false,
-        keepLegendaries: false,
-        keepMasterpieces: false,
-        keepUnfoundQuestTargets: true,
-        keepUnarchived: false,
-      },
+      questProtections,
       ["for_sale"],
     );
 
@@ -188,6 +205,49 @@ test("bulk sale protection ignores targets already submitted to the Historian", 
     await client.close();
     await mongoServer.stop();
   }
+});
+
+test("selected bulk actions honor saved quest protection without blocking deliberate single-item disposal", async (t) => {
+  const server = await MongoMemoryServer.create();
+  const client = await new MongoClient(server.getUri()).connect();
+  t.after(async () => { await client.close(); await server.stop(); });
+  const db = client.db("selected-bulk-quest-protection");
+  await db.collection("artworks").insertMany([
+    { _id: "art", rarity: "common" }, { _id: "other-art", rarity: "common" },
+  ]);
+  await db.collection("players").insertOne({ _id: "player", profile: {} });
+  await db.collection("quests").insertMany([
+    { _id: "complete", owner_id: "player", target: ["art"], fulfilled_targets: [{ artwork_id: "art" }] },
+    { _id: "incomplete", owner_id: "player", target: ["art"], fulfilled_targets: [] },
+    { _id: "other-player", owner_id: "other", target: ["other-art"] },
+  ]);
+  const permission = (body?: object, artworkId = "art") => getBulkDisposalPermission(
+    db, "player", {
+      _id: "item", artwork_id: artworkId, status: "unclaimed", revealed: true,
+      authenticity: { forgery: false, identified: false },
+    } as GameItem,
+    new Request("http://localhost", { method: "POST", ...(body ? { body: JSON.stringify(body) } : {}) }),
+  );
+  assert.equal((await permission({ bulkAction: true })).allowed, false, "defaults protect a target still outstanding in any quest");
+  assert.equal((await permission()).allowed, true, "single-item actions remain deliberate overrides");
+  await db.collection("players").updateOne({ _id: "player" }, {
+    $set: { "profile.view_settings.bulkSaleProtections": {
+      keptArtStyleIds: [], keepRares: false, keepLegendaries: false, keepMasterpieces: false,
+      keepUnfoundQuestTargets: true, keepUnarchived: false,
+    } },
+  });
+  assert.equal((await permission({ bulkAction: true }, "other-art")).allowed, true, "other players' targets do not block disposal");
+  await db.collection("players").updateOne({ _id: "player" }, {
+    $set: { "profile.view_settings.bulkSaleProtections.keepUnfoundQuestTargets": false },
+  });
+  assert.equal((await permission({ bulkAction: true })).allowed, true);
+  await db.collection("players").updateOne({ _id: "player" }, {
+    $set: { "profile.view_settings.bulkSaleProtections.keepUnfoundQuestTargets": true },
+  });
+  await db.collection("quests").updateOne({ _id: "incomplete" }, {
+    $set: { fulfilled_targets: [{ artwork_id: "art" }] },
+  });
+  assert.equal((await permission({ bulkAction: true })).allowed, true, "fulfilled targets no longer block bulk disposal");
 });
 
 test("bulk protections can filter auction-house-owned private auction items", async () => {
@@ -253,6 +313,35 @@ test("bulk protections can filter auction-house-owned private auction items", as
     assert.deepEqual(result.items.map((candidate) => candidate._id), [
       item._id,
     ]);
+    const unrestricted: BulkSaleProtections = {
+      keptArtStyleIds: [], keepRares: false, keepLegendaries: false, keepMasterpieces: false,
+      keepUnfoundQuestTargets: false, keepUnarchived: false,
+    };
+    const pending = { ...item, status: "unclaimed" as const, drop_chance_coefficient: 1e-9 };
+    const candidates = [
+      { ...pending, _id: "revealed", revealed: true },
+      { ...pending, _id: "sealed", revealed: false, odds: "unknown" },
+      { ...pending, _id: "legacy" },
+    ];
+    assert.deepEqual(
+      (await filterBulkLootCandidates(database, playerId, unrestricted, candidates)).items.map(item => item._id),
+      ["revealed"],
+    );
+    await database.collection("metadata").updateOne({ _id: "gameplay-settings" }, { $set: {
+      "gameplay.configs.actual.offer_reveal_thresholds": { level1: 0, level2: 0, level3: 0 },
+      "gameplay.debug_enabled": false,
+    } }, { upsert: true });
+    assert.deepEqual(
+      (await filterBulkLootCandidates(database, playerId, unrestricted, candidates)).items.map(item => item._id),
+      ["revealed", "legacy"],
+      "current cutoffs apply to legacy items, but explicit sealed flags always win",
+    );
+    await database.collection("artworks").updateOne({ _id: item.artwork_id }, { $set: { rarity: "legendary" } });
+    assert.deepEqual(
+      (await filterBulkLootCandidates(database, playerId, unrestricted, candidates)).items.map(item => item._id),
+      ["revealed"],
+      "legacy rarity floors use hydrated artwork rather than assuming ordinary rarity",
+    );
   } finally {
     await client.close();
     await mongoServer.stop();

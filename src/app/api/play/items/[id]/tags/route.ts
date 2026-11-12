@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBulkRevealPermission } from "@/server/bulk-sale";
 
 import type { GameItem } from "@/server/gameplay";
 import { normalizeItemTags } from "@/server/item-tags";
@@ -29,7 +30,8 @@ export async function PATCH(
     );
   }
   if (
-    Object.keys(body).length !== 1 ||
+    Object.keys(body).some((key) => key !== "tags" && key !== "bulkAction") ||
+    ("bulkAction" in body && typeof body.bulkAction !== "boolean") ||
     !Object.prototype.hasOwnProperty.call(body, "tags")
   ) {
     return NextResponse.json(
@@ -54,6 +56,10 @@ export async function PATCH(
       { error: "This item cannot currently be tagged." },
       { status: 409 },
     );
+  }
+  const bulkPermission = await getBulkRevealPermission(database, item, body.bulkAction);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
   }
   const forSale = normalized.tags.includes("for sale");
   const permission = getItemDisposalPermission(item, "collector-sale");

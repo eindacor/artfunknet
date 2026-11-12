@@ -22,15 +22,18 @@ import {
   transferForgeryLiability,
 } from "./forgery-gameplay.ts";
 import type { ArtworkRarity, GameItem } from "./gameplay.ts";
+import { getGameplaySettings } from "./game-settings.ts";
 import { transferHallOfFameItems } from "./hall-of-fame.ts";
 import { hydrateGameItems, type HydratedGameItem } from "./item-artwork.ts";
 import { getPlayerFacingArchivePermission, type ItemPermission } from "./item-permissions.ts";
+import { isRevealedForBulkAction, type OfferRevealThresholds } from "./offer-reveal.ts";
 
 export type BulkSaleProtections = {
   keptArtStyleIds: DroppableCardRendererId[];
   keepRares: boolean;
   keepLegendaries: boolean;
   keepMasterpieces: boolean;
+  // Keep the persisted key for unsubmitted-target protection compatible.
   keepUnfoundQuestTargets: boolean;
   keepUnarchived: boolean;
 };
@@ -43,6 +46,24 @@ export function normalizeBulkKeptArtStyleIds(
     value.filter((id): id is string => typeof id === "string"),
   );
   return DROPPABLE_CARD_RENDERER_IDS.filter((id) => selected.has(id));
+}
+
+export function getSavedBulkSaleProtections(value: unknown): BulkSaleProtections {
+  const protections = value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  return {
+    keptArtStyleIds: Array.isArray(protections.keptArtStyleIds)
+      ? normalizeBulkKeptArtStyleIds(protections.keptArtStyleIds)
+      : protections.keepArtStyles !== false
+        ? [...DROPPABLE_CARD_RENDERER_IDS]
+        : [],
+    keepRares: protections.keepRares !== false,
+    keepLegendaries: protections.keepLegendaries !== false,
+    keepMasterpieces: protections.keepMasterpieces !== false,
+    keepUnfoundQuestTargets: protections.keepUnfoundQuestTargets !== false,
+    keepUnarchived: protections.keepUnarchived !== false,
+  };
 }
 
 export type BulkOperationKind = "sale" | "donation";
@@ -96,7 +117,7 @@ export function shouldPreserveBulkSaleItem(
     archivePermission?: ItemPermission;
     artwork: { rarity: ArtworkRarity };
     card_renderer?: string;
-    unfoundQuestTarget?: boolean;
+    unsubmittedQuestTarget?: boolean;
   },
   protections: BulkSaleProtections,
 ): boolean {
@@ -109,9 +130,25 @@ export function shouldPreserveBulkSaleItem(
     (protections.keepLegendaries && item.artwork.rarity === "legendary") ||
     (protections.keepMasterpieces && item.artwork.rarity === "masterpiece") ||
     (protections.keepUnfoundQuestTargets &&
-      item.unfoundQuestTarget === true) ||
+      item.unsubmittedQuestTarget === true) ||
     (protections.keepUnarchived && item.archivePermission?.allowed === true)
   );
+}
+
+export function getBulkItemProtection(
+  item: Parameters<typeof shouldPreserveBulkSaleItem>[0] & Parameters<typeof isRevealedForBulkAction>[0],
+  protections: BulkSaleProtections,
+  thresholds?: OfferRevealThresholds,
+): ItemPermission {
+  if (!isRevealedForBulkAction(item, thresholds)) {
+    return { allowed: false, reason: "Reveal every selected item before using bulk actions." };
+  }
+  if (protections.keepUnfoundQuestTargets && item.unsubmittedQuestTarget) {
+    return { allowed: false, reason: "Unsubmitted quest targets are protected by your bulk-action preferences." };
+  }
+  return shouldPreserveBulkSaleItem(item, protections)
+    ? { allowed: false, reason: "This artwork is protected by your bulk-action preferences." }
+    : { allowed: true };
 }
 
 export async function getFilteredBulkLootCandidates(
@@ -166,10 +203,10 @@ export async function filterBulkLootCandidates(
       questTargetIds: new Set(),
     };
   }
-  const hydratedCandidates = await hydrateGameItems(
-    database,
-    eligibleCandidates,
-  );
+  const [hydratedCandidates, settings] = await Promise.all([
+    hydrateGameItems(database, eligibleCandidates),
+    getGameplaySettings(database),
+  ]);
   const [archiveRecords, quests] = await Promise.all([
     protections.keepUnarchived
       ? database
@@ -200,24 +237,7 @@ export async function filterBulkLootCandidates(
   const questTargetIds = new Set(
     quests.flatMap(getUnfulfilledHistorianTargetIds),
   );
-  let foundQuestTargetIds = new Set<string>();
-  if (questTargetIds.size > 0) {
-    const foundTargets = await database
-      .collection<GameItem>("items")
-      .find({
-        owner: playerId,
-        status: { $in: ["claimed", "displayed"] },
-        artwork_id: { $in: [...questTargetIds] },
-      })
-      .project<Pick<GameItem, "artwork_id">>({ artwork_id: 1 })
-      .toArray();
-    foundQuestTargetIds = new Set(
-      foundTargets
-        .map((item) => item.artwork_id)
-        .filter((artworkId): artworkId is string => typeof artworkId === "string"),
-    );
-  }
-  const protectedIds = new Set(
+  const allowedIds = new Set(
     hydratedCandidates
       .map((item) => {
         const archive = archiveByArtwork.get(item.artwork_id);
@@ -228,16 +248,14 @@ export async function filterBulkLootCandidates(
             archive ? getArchiveRecordModifiers(archive) : [],
             archive ? getArchiveRecordArtStyles(archive) : [],
           ),
-          unfoundQuestTarget:
-            questTargetIds.has(item.artwork_id) &&
-            !foundQuestTargetIds.has(item.artwork_id),
+          unsubmittedQuestTarget: questTargetIds.has(item.artwork_id),
         };
       })
-      .filter((item) => shouldPreserveBulkSaleItem(item, protections))
+      .filter((item) => getBulkItemProtection(item, protections, settings.active.offerRevealThresholds).allowed)
       .map((item) => item._id),
   );
   const items = eligibleCandidates.filter(
-    (item) => !protectedIds.has(item._id),
+    (item) => allowedIds.has(item._id),
   );
   return {
     candidates: eligibleCandidates,
@@ -245,6 +263,51 @@ export async function filterBulkLootCandidates(
     items,
     questTargetIds,
   };
+}
+
+export async function getBulkDisposalPermission(
+  database: Db,
+  playerId: string,
+  item: GameItem,
+  request: Request,
+): Promise<ItemPermission> {
+  const body = await request.json().catch(() => null) as { bulkAction?: unknown } | null;
+  if (body?.bulkAction !== true) return { allowed: true };
+  if (item.revealed === false) {
+    return { allowed: false, reason: "Reveal every selected item before using bulk actions." };
+  }
+
+  const player = await database.collection<{
+    _id: string;
+    profile?: { view_settings?: { bulkSaleProtections?: unknown } };
+  }>("players").findOne(
+    { _id: playerId },
+    { projection: { "profile.view_settings.bulkSaleProtections": 1 } },
+  );
+  const protections = getSavedBulkSaleProtections(player?.profile?.view_settings?.bulkSaleProtections);
+  const result = await filterBulkLootCandidates(database, playerId, protections, [item]);
+  if (result.items.length > 0) return { allowed: true };
+  return protections.keepUnfoundQuestTargets && result.questTargetIds.has(item.artwork_id)
+    ? { allowed: false, reason: "Unsubmitted quest targets are protected by your bulk-action preferences." }
+    : { allowed: false, reason: "Unrevealed or protected items cannot be processed by bulk actions." };
+}
+
+export async function getBulkRevealPermission(
+  database: Db,
+  item: GameItem,
+  bulkAction: unknown,
+): Promise<ItemPermission> {
+  if (bulkAction !== true || item.revealed === true) return { allowed: true };
+  if (item.revealed !== false) {
+    const [items, settings] = await Promise.all([
+      hydrateGameItems(database, [item]),
+      getGameplaySettings(database),
+    ]);
+    if (items[0] && isRevealedForBulkAction(items[0], settings.active.offerRevealThresholds)) {
+      return { allowed: true };
+    }
+  }
+  return { allowed: false, reason: "Reveal every selected item before using bulk actions." };
 }
 
 export async function processBulkForgeries(

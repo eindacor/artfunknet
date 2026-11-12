@@ -161,7 +161,7 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     archive: await route("archive"), purchase: await route("purchase"),
     setForSale: await route("purchase-and-set-for-sale"),
     claimForSale: await route("claim-and-set-for-sale"),
-    sell: await route("sell"), collector: await route("collector-sale"),
+    sell: await route("sell"), decline: await route("decline"), collector: await route("collector-sale"),
     reroll: await route("reroll"), level: await route("level"),
     authenticate: await route("authenticate"), auction: await route("auction"), repair: await route("repair"),
     display: await route("display"), undisplay: await route("undisplay"),
@@ -170,6 +170,10 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
     tags: (await load<{ PATCH: Route }>("../app/api/play/items/[id]/tags/route.ts", dependencies)).PATCH,
     sellAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/sell-all/route.ts", dependencies)).POST,
     donateAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/donate-all/route.ts", dependencies)).POST,
+    declineAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/decline-all/route.ts", dependencies)).POST,
+    dismiss: (await load<{ POST: Route }>("../app/api/play/auctions/[id]/dismiss/route.ts", dependencies)).POST,
+    dismissAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/auctions/dismiss-all/route.ts", dependencies)).POST,
+    makeAllPublic: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/auctions/make-all-public/route.ts", dependencies)).POST,
     acquireMany: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/acquire-many/route.ts", dependencies)).POST,
     claimAll: (await load<{ POST: (request: Request) => Promise<Response> }>("../app/api/play/items/claim-all/route.ts", dependencies)).POST,
   };
@@ -223,6 +227,218 @@ test("item actions preserve acquisition limits, Original protections and promote
   const client = new MongoClient(server.getUri());
   t.after(async () => { await client.close(); await server.stop(); });
   await client.connect();
+
+  const noProtections = {
+    keptArtStyleIds: [], keepRares: false, keepLegendaries: false, keepMasterpieces: false,
+    keepUnfoundQuestTargets: false, keepUnarchived: false,
+  };
+  for (const action of ["sell", "donate", "decline", "dismiss", "archive", "display", "undisplay", "repair", "historian", "collector", "tags"] as const) {
+    await t.test(`selected bulk ${action} never touches sealed items, even with all optional protections disabled`, async () => {
+      const db = client.db(`sealed-selected-${action}`);
+      const status = action === "dismiss" ? "auctioned"
+        : action === "undisplay" ? "displayed"
+          : ["display", "repair", "collector", "tags"].includes(action) ? "claimed" : "for_sale";
+      await seed(db, {
+        ...offer(action === "sell" ? "unclaimed" : status), tags: [], condition: 0.5,
+        revealed: false, odds: "unknown", drop_chance_coefficient: 0.5,
+      });
+      await db.collection("players").updateOne({ _id: "player" }, { $set: {
+        "profile.view_settings": { enableReveals: false, bulkSaleProtections: noProtections },
+      } });
+      if (action === "dismiss") {
+        await db.collection("items").updateOne({ _id: "offer" }, { $set: { owner: "system:auction-house" } });
+        await db.collection("auctions").insertOne({
+          _id: "offer", item_id: "offer", viewer: "player", expiration: new Date(Date.now() + 60_000).toISOString(),
+        });
+      }
+      const api = await routes(db);
+      const playerBefore = await db.collection("players").findOne({ _id: "player" });
+      const itemBefore = await db.collection("items").findOne({ _id: "offer" });
+      const response = await api[action](new Request("http://localhost", {
+        method: action === "tags" ? "PATCH" : "POST",
+        body: JSON.stringify({ bulkAction: true, ...(action === "tags" ? { tags: ["favorite"] } : { questId: "quest", offered: true }) }),
+      }), { params: Promise.resolve({ id: "offer" }) });
+      assert.equal(response.status, 409);
+      assert.match((await response.json()).error, /Reveal every selected item/);
+      assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+      assert.deepEqual(await db.collection("items").findOne({ _id: "offer" }), itemBefore);
+      assert.equal(await db.collection("exit_archive_records").countDocuments(), 0);
+    });
+  }
+
+  for (const action of ["sellAll", "donateAll", "declineAll", "dismissAll", "makeAllPublic", "claimAll", "acquireMany"] as const) {
+    await t.test(`${action} skips sealed items before selection, charging, forgery inspection or mutation`, async () => {
+      const db = client.db(`sealed-all-${action}`);
+      const privateAuction = action === "dismissAll" || action === "makeAllPublic";
+      const status = privateAuction ? "auctioned"
+        : action === "declineAll" || action === "acquireMany" ? "for_sale" : "unclaimed";
+      await seed(db, { ...offer(status), revealed: false, tags: [], odds: "unknown" });
+      await db.collection("artworks").insertMany([
+        { _id: "art", rarity: "common" }, { _id: "ordinary-art", rarity: "common" },
+      ]);
+      await db.collection<GameItem>("items").insertOne({
+        ...offer(status), _id: "ordinary", artwork_id: "ordinary-art", revealed: true, tags: [],
+      });
+      await db.collection("players").updateOne({ _id: "player" }, { $set: {
+        "profile.inventory_cap": 2,
+        "profile.view_settings": { enableReveals: false, bulkSaleProtections: noProtections },
+      } });
+      if (privateAuction) {
+        await db.collection("items").updateMany({ status: "auctioned" }, { $set: { owner: "system:auction-house" } });
+        await db.collection("auctions").insertMany(["offer", "ordinary"].map(id => ({
+          _id: `auction-${id}`, item_id: id, viewer: "player", transferable: true,
+          expiration: new Date(Date.now() + 60_000).toISOString(),
+        })));
+      }
+      const api = await routes(db, {
+        "@/server/artwork-effects": { getDisplayedArtworkEffect: async () => ({ parameters: {} }) },
+      });
+      const itemBefore = await db.collection("items").findOne({ _id: "offer" });
+      const invokeAll = () => api[action](new Request("http://localhost", {
+        method: "POST", body: JSON.stringify({ ...noProtections, mode: "all-for-sale" }),
+      }));
+      const response = await invokeAll();
+      const result = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(result));
+      assert.deepEqual(await db.collection("items").findOne({ _id: "offer" }), itemBefore);
+      if (action === "makeAllPublic") {
+        assert.deepEqual(result.madePublicAuctionIds, ["auction-ordinary"]);
+        assert.equal((await db.collection("auctions").findOne({ _id: "auction-offer" }))?.viewer, "player");
+      } else if (action === "dismissAll") {
+        assert.deepEqual(result.dismissedPrivateAuctionIds, ["auction-ordinary"]);
+      } else if (action === "claimAll" || action === "acquireMany") {
+        assert.equal((await db.collection("items").findOne({ _id: "ordinary" }))?.status, "claimed");
+      } else {
+        assert.equal(await db.collection("items").findOne({ _id: "ordinary" }), null);
+      }
+      const playerAfter = await db.collection("players").findOne({ _id: "player" });
+      assert.equal((await invokeAll()).status, 409, "a sealed-only batch has no valid targets");
+      assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerAfter);
+      assert.deepEqual(await db.collection("items").findOne({ _id: "offer" }), itemBefore);
+    });
+  }
+
+  await t.test("selected acquisition rejects mixed sealed batches without partial purchases", async () => {
+    const db = client.db("sealed-selected-acquisition");
+    await seed(db, { ...offer(), revealed: false });
+    await db.collection<GameItem>("items").insertOne({ ...offer(), _id: "ordinary", revealed: true });
+    await db.collection("players").updateOne({ _id: "player" }, { $set: { "profile.inventory_cap": 10 } });
+    const api = await routes(db);
+    const itemsBefore = await db.collection("items").find({}).toArray();
+    const playerBefore = await db.collection("players").findOne({ _id: "player" });
+    const response = await api.acquireMany(new Request("http://localhost", {
+      method: "POST", body: JSON.stringify({ mode: "selected", itemIds: ["ordinary", "offer"] }),
+    }));
+    assert.equal(response.status, 409);
+    assert.match((await response.json()).error, /Reveal every selected item/);
+    assert.deepEqual(await db.collection("items").find({}).toArray(), itemsBefore);
+    assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+  });
+
+  for (const implicit of [false, true]) {
+    await t.test(`Set Gallery protects ${implicit ? "implicitly removed" : "selected"} sealed items`, async () => {
+      const db = client.db(`sealed-set-gallery-${implicit}`);
+      await seed(db, { ...offer("claimed"), revealed: implicit });
+      await db.collection("items").updateOne({ _id: "keeper" }, { $set: {
+        status: implicit ? "displayed" : "claimed", revealed: !implicit,
+      } });
+      await db.collection("players").updateOne({ _id: "player" }, { $set: { "profile.display_cap": 5 } });
+      const api = await routes(db);
+      const itemsBefore = await db.collection("items").find({}).toArray();
+      const response = await api.setGallery(new Request("http://localhost", {
+        method: "POST", body: JSON.stringify({ itemIds: implicit ? ["offer"] : ["keeper", "offer"] }),
+      }));
+      assert.equal(response.status, 409);
+      assert.match((await response.json()).error, /Reveal every affected item/);
+      assert.deepEqual(await db.collection("items").find({}).toArray(), itemsBefore);
+    });
+  }
+
+  for (const action of ["sellAll", "donateAll", "declineAll", "dismissAll"] as const) {
+    await t.test(`${action} preserves quest targets with an owned copy while processing unrelated offers`, async () => {
+      const db = client.db(`quest-protected-${action}`);
+      const status = action === "declineAll" ? "for_sale" : action === "dismissAll" ? "auctioned" : "unclaimed";
+      const target = { ...offer(status), revealed: true };
+      await seed(db, target);
+      await db.collection("players").updateOne({ _id: "player" }, {
+        $set: { "profile.view_settings.bulkSaleProtections.keepUnfoundQuestTargets": true },
+      });
+      await db.collection("items").updateOne({ _id: "keeper" }, { $set: { artwork_id: "art" } });
+      await db.collection<GameItem>("items").insertOne({ ...target, _id: "ordinary", artwork_id: "ordinary-art" });
+      await db.collection("artworks").insertMany([
+        { _id: "art", rarity: "common", active: true },
+        { _id: "ordinary-art", rarity: "common", active: true },
+      ]);
+      if (action === "dismissAll") {
+        await db.collection("items").updateMany({ status: "auctioned" }, { $set: { owner: "system:auction-house" } });
+        await db.collection("auctions").insertMany(["offer", "ordinary"].map(itemId => ({
+          _id: `auction-${itemId}`, item_id: itemId, viewer: "player", expiration: new Date(Date.now() + 60_000).toISOString(),
+        })));
+      }
+      const api = await routes(db);
+      const response = await api[action](new Request("http://localhost", {
+        method: "POST", body: JSON.stringify({ keepUnfoundQuestTargets: true }),
+      }));
+      const body = await response.json();
+      assert.equal(response.status, 200, JSON.stringify(body));
+      assert.ok(await db.collection("items").findOne({ _id: "offer" }));
+      assert.ok(await db.collection("items").findOne({ _id: "keeper" }));
+      if (action === "dismissAll") {
+        assert.deepEqual(body.dismissedPrivateAuctionIds, ["auction-ordinary"]);
+      } else {
+        assert.equal(await db.collection("items").findOne({ _id: "ordinary" }), null);
+      }
+    });
+  }
+
+  for (const action of ["sell", "donate", "decline", "dismiss", "archive"] as const) {
+    await t.test(`selected bulk ${action} rejects a protected quest target before deleting, charging, or dismissing it`, async () => {
+      const db = client.db(`selected-quest-protected-${action}`);
+      await seed(db, { ...offer(action === "decline" ? "for_sale" : "unclaimed"), revealed: true });
+      await db.collection("artworks").insertOne({ _id: "art", rarity: "common" });
+      await db.collection("players").updateOne({ _id: "player" }, {
+        $set: { "profile.view_settings.bulkSaleProtections.keepUnfoundQuestTargets": true },
+      });
+      await db.collection("items").updateOne({ _id: "keeper" }, { $set: { artwork_id: "art", status: "displayed" } });
+      if (action === "dismiss") {
+        await db.collection("items").updateOne({ _id: "offer" }, { $set: { status: "auctioned", owner: "system:auction-house" } });
+        await db.collection("auctions").insertOne({
+          _id: "offer", item_id: "offer", viewer: "player", expiration: new Date(Date.now() + 60_000).toISOString(),
+        });
+      }
+      const api = await routes(db);
+      const playerBefore = await db.collection("players").findOne({ _id: "player" });
+      const itemBefore = await db.collection("items").findOne({ _id: "offer" });
+      const response = await api[action](new Request("http://localhost", {
+        method: "POST", body: JSON.stringify({ bulkAction: true }),
+      }), { params: Promise.resolve({ id: "offer" }) });
+      assert.equal(response.status, 409);
+      assert.match((await response.json()).error, /quest targets are protected/);
+      assert.deepEqual(await db.collection("players").findOne({ _id: "player" }), playerBefore);
+      assert.deepEqual(await db.collection("items").findOne({ _id: "offer" }), itemBefore);
+      if (action === "archive") {
+        await db.collection("players").updateOne({ _id: "player" }, {
+          $set: {
+            "profile.view_settings.bulkSaleProtections.keepUnfoundQuestTargets": false,
+            "profile.view_settings.bulkSaleProtections.keepUnarchived": true,
+          },
+        });
+        const protectedArchive = await api.archive(new Request("http://localhost", {
+          method: "POST", body: JSON.stringify({ bulkAction: true }),
+        }), { params: Promise.resolve({ id: "offer" }) });
+        assert.equal(protectedArchive.status, 409, "Keep unarchived is enforced by the archive API");
+        assert.deepEqual(await db.collection("items").findOne({ _id: "offer" }), itemBefore);
+        await db.collection("players").updateOne({ _id: "player" }, {
+          $set: { "profile.view_settings.bulkSaleProtections.keepUnarchived": false },
+        });
+        const archived = await api.archive(new Request("http://localhost", {
+          method: "POST", body: JSON.stringify({ bulkAction: true }),
+        }), { params: Promise.resolve({ id: "offer" }) });
+        assert.equal(archived.status, 200, JSON.stringify(await archived.json()));
+        assert.equal(await db.collection("items").findOne({ _id: "offer" }), null);
+      }
+    });
+  }
 
   for (const action of ["display", "setGallery"] as const) {
     await t.test(`${action} preserves existing Collector offerings when promoting artwork`, async () => {

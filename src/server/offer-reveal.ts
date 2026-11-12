@@ -97,9 +97,16 @@ export function isOfferRevealed(
   return getInitialItemRevealState(item, thresholds);
 }
 
-export function canQuickSellItem(
+export function isRevealedForBulkAction(
   item: RevealItem,
   thresholds: OfferRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
 ): boolean {
   return item.revealed !== false && isOfferRevealed(item, thresholds);
+}
+
+export function canQuickSellItem(
+  item: RevealItem,
+  thresholds: OfferRevealThresholds = DEFAULT_OFFER_REVEAL_THRESHOLDS,
+): boolean {
+  return isRevealedForBulkAction(item, thresholds);
 }

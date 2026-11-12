@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBulkRevealPermission } from "@/server/bulk-sale";
 
 import {
   type Artwork,
@@ -29,6 +30,7 @@ import { getItemDisposalFilter, getItemDisposalPermission } from "@/server/item-
 
 type SendToHistorianRequest = {
   questId?: unknown;
+  bulkAction?: unknown;
 };
 
 type HistorianPlayer = {
@@ -75,6 +77,10 @@ export async function POST(
   const permission = getItemDisposalPermission(item, "historian");
   if (!permission.allowed) {
     return NextResponse.json({ error: permission.reason }, { status: 409 });
+  }
+  const bulkPermission = await getBulkRevealPermission(database, item, body?.bulkAction);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
   }
 
   const quest = await database

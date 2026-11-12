@@ -5,6 +5,9 @@ import { NextResponse } from "next/server";
 import { selectBulkClaimItems } from "@/server/bulk-claim";
 import { recordEconomyMetricsSafely } from "@/server/economy-metrics";
 import type { GameItem } from "@/server/gameplay";
+import { getGameplaySettings } from "@/server/game-settings";
+import { hydrateGameItems } from "@/server/item-artwork";
+import { isRevealedForBulkAction } from "@/server/offer-reveal";
 import { checkItemForHallOfFameStatus } from "@/server/hall-of-fame";
 import {
   getUnexpiredItemFilter,
@@ -42,7 +45,7 @@ export async function POST() {
     return NextResponse.json({ error: "Player was not found." }, { status: 404 });
   }
 
-  const items = await database
+  const offers = await database
     .collection<GameItem>("items")
     .find({
       owner: player._id,
@@ -50,6 +53,12 @@ export async function POST() {
       ...unexpiredFilter,
     })
     .toArray();
+  const [hydratedOffers, settings] = await Promise.all([
+    hydrateGameItems(database, offers),
+    getGameplaySettings(database),
+  ]);
+  const items = hydratedOffers.filter((item) =>
+    isRevealedForBulkAction(item, settings.active.offerRevealThresholds));
   if (items.length === 0) {
     return NextResponse.json(
       { error: "There is no unclaimed loot to collect." },
@@ -95,6 +104,7 @@ export async function POST() {
       _id: { $in: selectedItems.map((item) => item._id) },
       owner: player._id,
       status: "unclaimed",
+      revealed: { $ne: false },
       ...unexpiredFilter,
     },
     {

@@ -37,7 +37,7 @@ export default function ItemThumbnail({
     | "status"
     | "tags"
   > & Partial<Pick<HydratedGameItem, "artwork" | "permanent">>;
-  researchTarget?: boolean;
+  researchTarget?: boolean | "submitted";
   showDisplayStatus?: boolean;
   size?: number;
 }) {
@@ -71,7 +71,7 @@ export function ItemStatusIcons({
 }: {
   className?: string;
   item: ItemStatusIconItem;
-  researchTarget?: boolean;
+  researchTarget?: boolean | "submitted";
   showDisplayStatus?: boolean;
 }) {
   const hasArtStyle =
@@ -115,8 +115,8 @@ export function ItemStatusIcons({
       ) : null}
       {researchTarget ? (
         <i
-          aria-label="Quest target"
-          className="fa fa-search thumbnail-quest-target"
+          aria-label={researchTarget === "submitted" ? "Submitted quest target" : "Quest target"}
+          className={`fa fa-search thumbnail-quest-target${researchTarget === "submitted" ? " thumbnail-quest-target-submitted" : ""}`}
           role="img"
         />
       ) : null}

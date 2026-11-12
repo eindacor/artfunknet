@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getBulkRevealPermission } from "@/server/bulk-sale";
 
 import type { GameItem } from "@/server/gameplay";
 import { getDatabase } from "@/server/mongodb";
@@ -30,7 +31,12 @@ export async function POST(
   const offered = item.tags.includes("for sale");
   const body = (await request.json().catch(() => null)) as {
     offered?: unknown;
+    bulkAction?: unknown;
   } | null;
+  const bulkPermission = await getBulkRevealPermission(database, item, body?.bulkAction);
+  if (!bulkPermission.allowed) {
+    return NextResponse.json({ error: bulkPermission.reason }, { status: 409 });
+  }
   const nextOffered =
     typeof body?.offered === "boolean" ? body.offered : !offered;
   const permission = getItemDisposalPermission(item, "collector-sale");

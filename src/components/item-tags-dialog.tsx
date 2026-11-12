@@ -134,7 +134,10 @@ export default function ItemTagsDialog({
           {
             method: "PATCH",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ tags: update.normalized.tags }),
+            body: JSON.stringify({
+              tags: update.normalized.tags,
+              ...(items.length > 1 ? { bulkAction: true } : {}),
+            }),
           },
         );
         const body = (await response.json()) as {

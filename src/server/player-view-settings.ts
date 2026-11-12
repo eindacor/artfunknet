@@ -1,6 +1,5 @@
-import { DROPPABLE_CARD_RENDERER_IDS } from "../components/item-cards/catalog.ts";
 import {
-  normalizeBulkKeptArtStyleIds,
+  getSavedBulkSaleProtections,
   type BulkSaleProtections,
 } from "./bulk-sale.ts";
 import { parseCratePurchaseCount } from "./crate-gameplay.ts";
@@ -138,23 +137,13 @@ export const DEFAULT_PLAYER_VIEW_SETTINGS: PlayerViewSettings = {
   cratePurchaseCount: 1,
   enableReveals: true,
   showGalleryVisitors: true,
-  bulkSaleProtections: {
-    keptArtStyleIds: [...DROPPABLE_CARD_RENDERER_IDS],
-    keepRares: true,
-    keepLegendaries: true,
-    keepMasterpieces: true,
-    keepUnfoundQuestTargets: true,
-    keepUnarchived: true,
-  },
+  bulkSaleProtections: getSavedBulkSaleProtections(null),
   auctionFilters: DEFAULT_AUCTION_FILTER_SETTINGS,
   auctionView: "list",
 };
 
 export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
   const settings = isRecord(value) ? value : {};
-  const protections = isRecord(settings.bulkSaleProtections)
-    ? settings.bulkSaleProtections
-    : {};
   const auctionFilters = normalizeAuctionFilterSettings(
     settings.auctionFilters,
   );
@@ -183,18 +172,7 @@ export function getPlayerViewSettings(value: unknown): PlayerViewSettings {
       DEFAULT_PLAYER_VIEW_SETTINGS.cratePurchaseCount,
     enableReveals: settings.enableReveals !== false,
     showGalleryVisitors: settings.showGalleryVisitors !== false,
-    bulkSaleProtections: {
-      keptArtStyleIds: Array.isArray(protections.keptArtStyleIds)
-        ? normalizeBulkKeptArtStyleIds(protections.keptArtStyleIds)
-        : protections.keepArtStyles !== false
-          ? [...DROPPABLE_CARD_RENDERER_IDS]
-          : [],
-      keepRares: protections.keepRares !== false,
-      keepLegendaries: protections.keepLegendaries !== false,
-      keepMasterpieces: protections.keepMasterpieces !== false,
-      keepUnfoundQuestTargets: protections.keepUnfoundQuestTargets !== false,
-      keepUnarchived: protections.keepUnarchived !== false,
-    },
+    bulkSaleProtections: getSavedBulkSaleProtections(settings.bulkSaleProtections),
     auctionFilters,
     auctionView: includes(AUCTION_VIEW_MODES, settings.auctionView)
       ? settings.auctionView

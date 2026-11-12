@@ -8,6 +8,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import ts from "typescript";
 
 import * as artworkEffects from "./artwork-effects.ts";
+import * as bulkSale from "./bulk-sale.ts";
 import { createArtistArtworkPreview } from "./artist-artwork-preview.ts";
 import * as forgery from "./forgery-gameplay.ts";
 import * as gameplay from "./gameplay.ts";
@@ -18,6 +19,7 @@ import * as itemMint from "./item-mint.ts";
 import * as legendary from "./legendary-attributes.ts";
 import * as masterpieceEffects from "./masterpiece-effects.ts";
 import * as npcGameplay from "./npc-gameplay.ts";
+import * as offerReveal from "./offer-reveal.ts";
 import * as tutorial from "./tutorial.ts";
 import * as tutorialElements from "../shared/tutorial.ts";
 import * as socialBattery from "./social-battery.ts";
@@ -78,6 +80,8 @@ async function routes(db: Db, overrides: Record<string, unknown> = {}) {
       return null;
     } },
     "@/server/game-settings": settings,
+    "@/server/bulk-sale": bulkSale,
+    "@/server/offer-reveal": offerReveal,
     "@/server/gameplay": { ...gameplay, generateDailyDrop: async (...args: Parameters<typeof gameplay.generateDailyDrop>) => {
       if (state.failGeneration) throw new Error("Generation unavailable");
       return gameplay.generateDailyDrop(...args);

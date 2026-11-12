@@ -162,6 +162,7 @@ export async function POST(request: Request) {
         _id: { $in: ids },
         owner: auth.session.playerId,
         ...getItemDisposalFilter("donate", "unclaimed"),
+        revealed: { $ne: false },
       },
       {
         $set: {
